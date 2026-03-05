@@ -60,21 +60,21 @@ const UsuariosPage = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [profilesRes, rolesRes, schoolsRes] = await Promise.all([
-      supabase.from("profiles").select("user_id, full_name, school_id, schools(name)"),
-      supabase.from("user_roles").select("user_id, role"),
+    const [usersRes, schoolsRes] = await Promise.all([
+      supabase.rpc("get_all_users_with_email"),
       supabase.from("schools").select("id, name").order("name"),
     ]);
 
-    const rolesMap = new Map<string, string>();
-    (rolesRes.data || []).forEach((r: any) => rolesMap.set(r.user_id, r.role));
+    const schoolsMap = new Map<string, string>();
+    (schoolsRes.data || []).forEach((s: any) => schoolsMap.set(s.id, s.name));
 
-    const merged: UserRow[] = (profilesRes.data || []).map((p: any) => ({
-      full_name: p.full_name,
-      user_id: p.user_id,
-      school_id: p.school_id,
-      school_name: p.schools?.name || null,
-      role: rolesMap.get(p.user_id) || "responsavel",
+    const merged: UserRow[] = (usersRes.data || []).map((u: any) => ({
+      full_name: u.full_name,
+      email: u.email,
+      user_id: u.user_id,
+      school_id: u.school_id,
+      school_name: u.school_id ? schoolsMap.get(u.school_id) || null : null,
+      role: u.role || "responsavel",
     }));
 
     setUsers(merged);

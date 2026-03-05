@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import BrotarLogo from "@/components/BrotarLogo";
 import { Mail, Lock, Sprout } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";

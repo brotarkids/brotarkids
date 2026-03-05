@@ -21,6 +21,8 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ children, title, navItems, roleBadge }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background flex">

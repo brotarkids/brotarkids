@@ -1,7 +1,10 @@
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { LayoutDashboard, Users, GraduationCap, CreditCard, FileText, Settings, Search, Plus, MoreVertical } from "lucide-react";
+import { LayoutDashboard, Users, GraduationCap, CreditCard, FileText, Settings, Search, Plus, MoreVertical, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 const navItems = [
   { label: "Visão Geral", href: "/admin", icon: <LayoutDashboard size={18} /> },
@@ -12,55 +15,83 @@ const navItems = [
   { label: "Configurações", href: "/admin/config", icon: <Settings size={18} /> },
 ];
 
-const criancas = [
-  { name: "Sofia Oliveira", age: "3 anos", turma: "Maternal I", responsavel: "Fernanda Costa", status: "Ativa" },
-  { name: "Miguel Santos", age: "2 anos", turma: "Berçário A", responsavel: "João Santos", status: "Ativa" },
-  { name: "Helena Lima", age: "4 anos", turma: "Pré I", responsavel: "Ana Lima", status: "Ativa" },
-  { name: "Arthur Souza", age: "3 anos", turma: "Maternal I", responsavel: "Carlos Souza", status: "Ativa" },
-  { name: "Laura Pereira", age: "1 ano", turma: "Berçário A", responsavel: "Maria Pereira", status: "Trancada" },
-];
+const CriancasPage = () => {
+  const { data: profile } = useUserProfile();
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
-const CriancasPage = () => (
-  <DashboardLayout title="Crianças" navItems={navItems} roleBadge="Diretor(a)">
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
-      <div className="relative w-full sm:w-72">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-        <Input placeholder="Buscar criança..." className="pl-10" />
+  useEffect(() => {
+    if (!profile) return;
+    const load = async () => {
+      let query = supabase.from("students").select("*, classes(name)");
+      if (profile.school_id) query = query.eq("school_id", profile.school_id);
+      query = query.order("name");
+
+      const { data } = await query;
+      setStudents(data || []);
+      setLoading(false);
+    };
+    load();
+  }, [profile]);
+
+  const filtered = students.filter(s =>
+    s.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const calcAge = (birthDate: string | null) => {
+    if (!birthDate) return "-";
+    const diff = Date.now() - new Date(birthDate).getTime();
+    const years = Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000));
+    return years < 1 ? "< 1 ano" : `${years} ano${years > 1 ? "s" : ""}`;
+  };
+
+  return (
+    <DashboardLayout title="Crianças" navItems={navItems} roleBadge="Diretor(a)">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+          <Input placeholder="Buscar criança..." className="pl-10" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+        </div>
+        <Button variant="default" size="sm"><Plus size={16} /> Nova Matrícula</Button>
       </div>
-      <Button variant="default" size="sm"><Plus size={16} /> Nova Matrícula</Button>
-    </div>
 
-    <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-muted-foreground">
-              <th className="px-5 py-3 font-medium">Nome</th>
-              <th className="px-5 py-3 font-medium">Idade</th>
-              <th className="px-5 py-3 font-medium">Turma</th>
-              <th className="px-5 py-3 font-medium">Responsável</th>
-              <th className="px-5 py-3 font-medium">Status</th>
-              <th className="px-5 py-3 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {criancas.map((c) => (
-              <tr key={c.name} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
-                <td className="px-5 py-3 font-medium text-foreground">{c.name}</td>
-                <td className="px-5 py-3 text-muted-foreground">{c.age}</td>
-                <td className="px-5 py-3 text-foreground">{c.turma}</td>
-                <td className="px-5 py-3 text-muted-foreground">{c.responsavel}</td>
-                <td className="px-5 py-3">
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${c.status === "Ativa" ? "bg-success/40 text-success-foreground" : "bg-muted text-muted-foreground"}`}>{c.status}</span>
-                </td>
-                <td className="px-5 py-3"><button className="text-muted-foreground hover:text-foreground"><MoreVertical size={16} /></button></td>
+      <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-muted-foreground">
+                <th className="px-5 py-3 font-medium">Nome</th>
+                <th className="px-5 py-3 font-medium">Idade</th>
+                <th className="px-5 py-3 font-medium">Turma</th>
+                <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3 font-medium"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={5} className="px-5 py-8 text-center text-muted-foreground"><Loader2 className="mx-auto h-6 w-6 animate-spin mb-2" />Carregando...</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={5} className="px-5 py-8 text-center text-muted-foreground">Nenhuma criança encontrada.</td></tr>
+              ) : filtered.map((c) => (
+                <tr key={c.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                  <td className="px-5 py-3 font-medium text-foreground">{c.name}</td>
+                  <td className="px-5 py-3 text-muted-foreground">{calcAge(c.birth_date)}</td>
+                  <td className="px-5 py-3 text-foreground">{c.classes?.name || "-"}</td>
+                  <td className="px-5 py-3">
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${c.status === "active" ? "bg-success/40 text-success-foreground" : "bg-muted text-muted-foreground"}`}>
+                      {c.status === "active" ? "Ativa" : c.status || "-"}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3"><button className="text-muted-foreground hover:text-foreground"><MoreVertical size={16} /></button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  </DashboardLayout>
-);
+    </DashboardLayout>
+  );
+};
 
 export default CriancasPage;

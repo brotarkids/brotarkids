@@ -33,6 +33,7 @@ const roleBadgeColor: Record<string, string> = {
 
 interface UserRow {
   full_name: string | null;
+  email: string | null;
   user_id: string;
   school_id: string | null;
   school_name: string | null;

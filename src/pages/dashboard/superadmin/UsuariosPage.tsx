@@ -33,6 +33,7 @@ const roleBadgeColor: Record<string, string> = {
 
 interface UserRow {
   full_name: string | null;
+  email: string | null;
   user_id: string;
   school_id: string | null;
   school_name: string | null;
@@ -59,21 +60,21 @@ const UsuariosPage = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [profilesRes, rolesRes, schoolsRes] = await Promise.all([
-      supabase.from("profiles").select("user_id, full_name, school_id, schools(name)"),
-      supabase.from("user_roles").select("user_id, role"),
+    const [usersRes, schoolsRes] = await Promise.all([
+      supabase.rpc("get_all_users_with_email"),
       supabase.from("schools").select("id, name").order("name"),
     ]);
 
-    const rolesMap = new Map<string, string>();
-    (rolesRes.data || []).forEach((r: any) => rolesMap.set(r.user_id, r.role));
+    const schoolsMap = new Map<string, string>();
+    (schoolsRes.data || []).forEach((s: any) => schoolsMap.set(s.id, s.name));
 
-    const merged: UserRow[] = (profilesRes.data || []).map((p: any) => ({
-      full_name: p.full_name,
-      user_id: p.user_id,
-      school_id: p.school_id,
-      school_name: p.schools?.name || null,
-      role: rolesMap.get(p.user_id) || "responsavel",
+    const merged: UserRow[] = (usersRes.data || []).map((u: any) => ({
+      full_name: u.full_name,
+      email: u.email,
+      user_id: u.user_id,
+      school_id: u.school_id,
+      school_name: u.school_id ? schoolsMap.get(u.school_id) || null : null,
+      role: u.role || "responsavel",
     }));
 
     setUsers(merged);
@@ -128,6 +129,7 @@ const UsuariosPage = () => {
 
   const filtered = users.filter(u =>
     (u.full_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (u.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
     (u.school_name || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -146,6 +148,7 @@ const UsuariosPage = () => {
             <thead>
               <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="px-5 py-3 font-medium">Nome</th>
+                <th className="px-5 py-3 font-medium">Email</th>
                 <th className="px-5 py-3 font-medium">Papel</th>
                 <th className="px-5 py-3 font-medium">Creche</th>
                 <th className="px-5 py-3 font-medium">Ações</th>
@@ -153,12 +156,13 @@ const UsuariosPage = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={4} className="px-5 py-8 text-center text-muted-foreground"><Loader2 className="mx-auto h-6 w-6 animate-spin mb-2" />Carregando...</td></tr>
+                <tr><td colSpan={5} className="px-5 py-8 text-center text-muted-foreground"><Loader2 className="mx-auto h-6 w-6 animate-spin mb-2" />Carregando...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={4} className="px-5 py-8 text-center text-muted-foreground">Nenhum usuário encontrado.</td></tr>
+                <tr><td colSpan={5} className="px-5 py-8 text-center text-muted-foreground">Nenhum usuário encontrado.</td></tr>
               ) : filtered.map((u) => (
                 <tr key={u.user_id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                   <td className="px-5 py-3 font-medium text-foreground">{u.full_name || "Sem nome"}</td>
+                  <td className="px-5 py-3 text-muted-foreground text-xs">{u.email || "—"}</td>
                   <td className="px-5 py-3">
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${roleBadgeColor[u.role] ?? "bg-muted"}`}>{roleLabels[u.role] || u.role}</span>
                   </td>

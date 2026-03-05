@@ -1,8 +1,9 @@
 import { ReactNode, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import BrotarLogo from "@/components/BrotarLogo";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, Bell } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface NavItem {
   label: string;

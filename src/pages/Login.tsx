@@ -30,16 +30,8 @@ const Login = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    setLoading(false);
-    if (error) {
-      toast.error("Erro ao entrar com Google");
-    }
-  };
+
+
 
   return (
     <div className="min-h-screen gradient-hero flex items-center justify-center p-4">

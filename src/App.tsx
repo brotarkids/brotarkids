@@ -13,6 +13,7 @@ import AuthCallback from "./pages/AuthCallback";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 
 // SuperAdmin
 import SuperAdminDashboard from "./pages/dashboard/SuperAdminDashboard";

@@ -3,6 +3,7 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { LayoutDashboard, Calendar, CreditCard, MessageSquare, User, Camera, Utensils, Moon, Smile, Clock, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 
 const navItems = [
   { label: "Feed do Dia", href: "/responsavel", icon: <LayoutDashboard size={18} /> },

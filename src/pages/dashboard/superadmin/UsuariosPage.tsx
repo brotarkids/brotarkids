@@ -148,6 +148,7 @@ const UsuariosPage = () => {
             <thead>
               <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="px-5 py-3 font-medium">Nome</th>
+                <th className="px-5 py-3 font-medium">Email</th>
                 <th className="px-5 py-3 font-medium">Papel</th>
                 <th className="px-5 py-3 font-medium">Creche</th>
                 <th className="px-5 py-3 font-medium">Ações</th>

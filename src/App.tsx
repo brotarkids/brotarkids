@@ -29,6 +29,7 @@ import CriancasPage from "./pages/dashboard/admin/CriancasPage";
 import TurmasPage from "./pages/dashboard/admin/TurmasPage";
 import FinanceiroAdminPage from "./pages/dashboard/admin/FinanceiroAdminPage";
 import RelatoriosPage from "./pages/dashboard/admin/RelatoriosPage";
+import AssinaturaPage from "./pages/dashboard/admin/AssinaturaPage";
 import ConfigAdminPage from "./pages/dashboard/admin/ConfigAdminPage";
 
 // Professor

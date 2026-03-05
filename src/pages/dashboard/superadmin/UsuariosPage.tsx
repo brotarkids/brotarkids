@@ -129,6 +129,7 @@ const UsuariosPage = () => {
 
   const filtered = users.filter(u =>
     (u.full_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (u.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
     (u.school_name || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 

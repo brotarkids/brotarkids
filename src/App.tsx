@@ -29,6 +29,7 @@ import CriancasPage from "./pages/dashboard/admin/CriancasPage";
 import TurmasPage from "./pages/dashboard/admin/TurmasPage";
 import FinanceiroAdminPage from "./pages/dashboard/admin/FinanceiroAdminPage";
 import RelatoriosPage from "./pages/dashboard/admin/RelatoriosPage";
+import AssinaturaPage from "./pages/dashboard/admin/AssinaturaPage";
 import ConfigAdminPage from "./pages/dashboard/admin/ConfigAdminPage";
 
 // Professor
@@ -78,6 +79,7 @@ const App = () => (
               <Route path="/admin/turmas" element={<ProtectedRoute allowedRoles={["superadmin", "admin"]}><TurmasPage /></ProtectedRoute>} />
               <Route path="/admin/financeiro" element={<ProtectedRoute allowedRoles={["superadmin", "admin"]}><FinanceiroAdminPage /></ProtectedRoute>} />
               <Route path="/admin/relatorios" element={<ProtectedRoute allowedRoles={["superadmin", "admin"]}><RelatoriosPage /></ProtectedRoute>} />
+              <Route path="/admin/assinatura" element={<ProtectedRoute allowedRoles={["superadmin", "admin"]}><AssinaturaPage /></ProtectedRoute>} />
               <Route path="/admin/config" element={<ProtectedRoute allowedRoles={["superadmin", "admin"]}><ConfigAdminPage /></ProtectedRoute>} />
 
               {/* Professor */}

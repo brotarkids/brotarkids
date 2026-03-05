@@ -16,7 +16,7 @@ const HeroSection = () => {
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold font-display leading-tight text-foreground">
               Acompanhe o crescimento dos seus{" "}
-              <span className="gradient-sprout bg-clip-text text-transparent">
+              <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(135deg, #98E5A1, #B9FBC0)' }}>
                 pequenos
               </span>{" "}
               em tempo real

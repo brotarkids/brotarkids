@@ -63,11 +63,9 @@ const DashboardLayout = ({ children, title, navItems, roleBadge }: DashboardLayo
         </nav>
 
         <div className="p-3 border-t border-border">
-          <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground" asChild>
-            <Link to="/">
+          <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground" onClick={async () => { await signOut(); navigate("/"); }}>
               <LogOut size={16} />
               Sair
-            </Link>
           </Button>
         </div>
       </aside>

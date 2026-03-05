@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,6 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { user, role, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
 
   if (authLoading) return null;
   if (user) return <Navigate to={getRoleDashboard(role)} replace />;

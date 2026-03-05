@@ -1,13 +1,31 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Helmet } from "react-helmet-async";
+import Header from "@/components/landing/Header";
+import HeroSection from "@/components/landing/HeroSection";
+import BenefitsSection from "@/components/landing/BenefitsSection";
+import PricingSection from "@/components/landing/PricingSection";
+import TestimonialsSection from "@/components/landing/TestimonialsSection";
+import Footer from "@/components/landing/Footer";
 
 const Index = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <>
+      <Helmet>
+        <title>Brotar – Gestão inteligente para creches e educação infantil</title>
+        <meta name="description" content="Plataforma completa para creches e escolas de educação infantil no Brasil. Registro diário, comunicação com pais, financeiro, relatórios com IA e muito mais." />
+        <meta name="keywords" content="app creche Brasil, acompanhamento infantil, gestão creche, educação infantil, agenda digital creche" />
+        <link rel="canonical" href="https://brotar.app" />
+      </Helmet>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1">
+          <HeroSection />
+          <BenefitsSection />
+          <TestimonialsSection />
+          <PricingSection />
+        </main>
+        <Footer />
       </div>
-    </div>
+    </>
   );
 };
 

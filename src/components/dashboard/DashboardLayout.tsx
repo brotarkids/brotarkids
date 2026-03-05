@@ -1,8 +1,9 @@
 import { ReactNode, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import BrotarLogo from "@/components/BrotarLogo";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, Bell } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface NavItem {
   label: string;
@@ -20,6 +21,8 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ children, title, navItems, roleBadge }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -60,11 +63,9 @@ const DashboardLayout = ({ children, title, navItems, roleBadge }: DashboardLayo
         </nav>
 
         <div className="p-3 border-t border-border">
-          <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground" asChild>
-            <Link to="/">
+          <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground" onClick={async () => { await signOut(); navigate("/"); }}>
               <LogOut size={16} />
               Sair
-            </Link>
           </Button>
         </div>
       </aside>

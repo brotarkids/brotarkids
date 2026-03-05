@@ -1,11 +1,60 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import BrotarLogo from "@/components/BrotarLogo";
 import { Mail, Lock, User, Sprout } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { getRoleDashboard } from "@/components/auth/ProtectedRoute";
 
 const Signup = () => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { user, role, loading: authLoading } = useAuth();
+
+  if (authLoading) return null;
+  if (user) return <Navigate to={getRoleDashboard(role)} replace />;
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: name },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Conta criada! Verifique seu email para confirmar.");
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    setLoading(true);
+    const { error } = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    setLoading(false);
+    if (error) {
+      toast.error("Erro ao cadastrar com Google");
+    }
+  };
+
   return (
     <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -17,7 +66,7 @@ const Signup = () => {
         </div>
 
         <div className="bg-card rounded-2xl shadow-elevated border border-border p-6 space-y-5">
-          <Button variant="outline" className="w-full h-11 gap-3 font-medium">
+          <Button variant="outline" className="w-full h-11 gap-3 font-medium" onClick={handleGoogleSignup} disabled={loading}>
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -36,33 +85,33 @@ const Signup = () => {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nome completo</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                <Input id="name" placeholder="Seu nome" className="pl-10 h-11" />
+                <Input id="name" placeholder="Seu nome" className="pl-10 h-11" value={name} onChange={(e) => setName(e.target.value)} required />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                <Input id="email" type="email" placeholder="seu@email.com" className="pl-10 h-11" />
+                <Input id="email" type="email" placeholder="seu@email.com" className="pl-10 h-11" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                <Input id="password" type="password" placeholder="Mínimo 6 caracteres" className="pl-10 h-11" />
+                <Input id="password" type="password" placeholder="Mínimo 6 caracteres" className="pl-10 h-11" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
               </div>
             </div>
-            <Button variant="hero" className="w-full" size="lg">
+            <Button variant="hero" className="w-full" size="lg" type="submit" disabled={loading}>
               <Sprout size={18} />
-              Criar minha conta
+              {loading ? "Criando conta..." : "Criar minha conta"}
             </Button>
-          </div>
+          </form>
 
           <p className="text-center text-sm text-muted-foreground">
             Já tem conta?{" "}

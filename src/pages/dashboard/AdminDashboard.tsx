@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import StatCard from "@/components/dashboard/StatCard";
-import { LayoutDashboard, Users, GraduationCap, CreditCard, FileText, Settings, UserCheck, AlertTriangle, Heart, Loader2 } from "lucide-react";
+import { LayoutDashboard, Users, GraduationCap, CreditCard, FileText, Settings, UserCheck, AlertTriangle, Heart, Loader2, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
@@ -11,6 +11,7 @@ const navItems = [
   { label: "Turmas", href: "/admin/turmas", icon: <GraduationCap size={18} /> },
   { label: "Financeiro", href: "/admin/financeiro", icon: <CreditCard size={18} /> },
   { label: "Relatórios", href: "/admin/relatorios", icon: <FileText size={18} /> },
+  { label: "Assinatura", href: "/admin/assinatura", icon: <Crown size={18} /> },
   { label: "Configurações", href: "/admin/config", icon: <Settings size={18} /> },
 ];
 

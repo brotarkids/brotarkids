@@ -1,1 +1,4 @@
 project_id = "rvqxcaaypppiqghradhc"
+
+[functions.ai-pedagogy]
+verify_jwt = false

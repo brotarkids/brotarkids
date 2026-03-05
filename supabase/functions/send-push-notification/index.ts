@@ -1,5 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import webpush from "https://esm.sh/web-push@3.6.7";
+import {
+  ApplicationServer,
+  importVapidKeys,
+} from "jsr:@negrel/webpush@0.3.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,11 +29,16 @@ Deno.serve(async (req) => {
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY')!;
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY')!;
 
-    webpush.setVapidDetails(
-      'mailto:noreply@brotar.app',
-      vapidPublicKey,
-      vapidPrivateKey
+    // Import VAPID keys and create application server
+    const vapidKeys = await importVapidKeys(
+      { publicKey: vapidPublicKey, privateKey: vapidPrivateKey },
+      { extractable: false }
     );
+
+    const appServer = await ApplicationServer.new({
+      contactInformation: 'mailto:noreply@brotar.app',
+      vapidKeys,
+    });
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -72,15 +80,27 @@ Deno.serve(async (req) => {
           },
         };
 
-        await webpush.sendNotification(pushSubscription, payload);
-        sent++;
-      } catch (e: any) {
-        console.error(`Push error for ${sub.endpoint}:`, e?.statusCode, e?.body);
-        
-        // Remove expired/invalid subscriptions
-        if (e?.statusCode === 410 || e?.statusCode === 404) {
+        // Build the push request using @negrel/webpush
+        const pushRequest = await appServer.pushTextMessage(
+          pushSubscription,
+          payload,
+          {}
+        );
+
+        const res = await fetch(pushRequest);
+
+        if (res.ok || res.status === 201) {
+          sent++;
+        } else if (res.status === 410 || res.status === 404) {
           await supabase.from('push_subscriptions').delete().eq('id', sub.id);
+          failed++;
+        } else {
+          const text = await res.text();
+          console.error(`Push failed for ${sub.endpoint}: ${res.status} ${text}`);
+          failed++;
         }
+      } catch (e: any) {
+        console.error(`Push error for ${sub.endpoint}:`, e);
         failed++;
       }
     }

@@ -97,6 +97,9 @@ const ResponsavelDashboard = () => {
 
   return (
     <DashboardLayout title="Acompanhamento" navItems={navItems} roleBadge="Responsável">
+      <div className="flex justify-end mb-4">
+        <PushNotificationToggle />
+      </div>
       <div className="bg-card rounded-2xl p-5 shadow-card border border-border mb-6">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-full gradient-sprout flex items-center justify-center text-2xl">

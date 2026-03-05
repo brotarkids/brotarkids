@@ -162,6 +162,7 @@ const UsuariosPage = () => {
               ) : filtered.map((u) => (
                 <tr key={u.user_id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                   <td className="px-5 py-3 font-medium text-foreground">{u.full_name || "Sem nome"}</td>
+                  <td className="px-5 py-3 text-muted-foreground text-xs">{u.email || "—"}</td>
                   <td className="px-5 py-3">
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${roleBadgeColor[u.role] ?? "bg-muted"}`}>{roleLabels[u.role] || u.role}</span>
                   </td>

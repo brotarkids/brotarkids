@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import StatCard from "@/components/dashboard/StatCard";
-import { LayoutDashboard, Building2, Users, CreditCard, BarChart3, Settings, TrendingUp, TrendingDown, DollarSign, AlertTriangle } from "lucide-react";
+import { LayoutDashboard, Building2, Users, CreditCard, BarChart3, Settings, TrendingUp, DollarSign, AlertTriangle, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { label: "Visão Geral", href: "/superadmin", icon: <LayoutDashboard size={18} /> },
@@ -11,56 +13,85 @@ const navItems = [
   { label: "Configurações", href: "/superadmin/config", icon: <Settings size={18} /> },
 ];
 
-const transactions = [
-  { creche: "Raio de Sol", type: "Mensalidade", value: "R$ 12.500", date: "05/03", status: "Pago" },
-  { creche: "Pequeno Mundo", type: "Mensalidade", value: "R$ 8.200", date: "04/03", status: "Pago" },
-  { creche: "Centro Infantil Broto", type: "Mensalidade", value: "R$ 6.800", date: "03/03", status: "Pendente" },
-  { creche: "Estrela Guia", type: "Mensalidade", value: "R$ 9.100", date: "02/03", status: "Pago" },
-];
+const FinanceiroPage = () => {
+  const [records, setRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-const FinanceiroPage = () => (
-  <DashboardLayout title="Financeiro" navItems={navItems} roleBadge="Superadmin">
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <StatCard icon={<DollarSign size={18} />} label="Receita total" value="R$ 42.3k" sub="Março 2026" color="bg-success/40" />
-      <StatCard icon={<TrendingUp size={18} />} label="Crescimento" value="+12%" sub="vs fev/2026" color="bg-primary/15" />
-      <StatCard icon={<AlertTriangle size={18} />} label="Inadimplência" value="R$ 2.6k" sub="6.2%" color="bg-warning/30" />
-      <StatCard icon={<TrendingDown size={18} />} label="Churn" value="1.2%" sub="1 creche cancelou" color="bg-destructive/20" />
-    </div>
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from("financial_records")
+        .select("*, schools(name)")
+        .order("due_date", { ascending: false })
+        .limit(50);
+      setRecords(data || []);
+      setLoading(false);
+    };
+    load();
+  }, []);
 
-    <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden">
-      <div className="px-5 py-4 border-b border-border">
-        <h3 className="font-display font-bold text-foreground">Movimentações recentes</h3>
+  const paid = records.filter(r => r.status === "paid");
+  const pending = records.filter(r => r.status === "pending");
+  const totalRevenue = paid.reduce((s, r) => s + Number(r.amount), 0);
+  const totalPending = pending.reduce((s, r) => s + Number(r.amount), 0);
+  const fmt = (v: number) => v >= 1000 ? `R$ ${(v / 1000).toFixed(1)}k` : `R$ ${v.toFixed(0)}`;
+  const inadRate = (totalRevenue + totalPending) > 0 ? ((totalPending / (totalRevenue + totalPending)) * 100).toFixed(1) : "0";
+
+  const statusLabel: Record<string, string> = { paid: "Pago", pending: "Pendente", overdue: "Atrasado" };
+  const statusColor: Record<string, string> = {
+    paid: "bg-success/40 text-success-foreground",
+    pending: "bg-warning/30 text-warning-foreground",
+    overdue: "bg-destructive/20 text-destructive",
+  };
+
+  return (
+    <DashboardLayout title="Financeiro" navItems={navItems} roleBadge="Superadmin">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard icon={<DollarSign size={18} />} label="Receita total" value={fmt(totalRevenue)} color="bg-success/40" />
+        <StatCard icon={<TrendingUp size={18} />} label="Registros" value={String(records.length)} color="bg-primary/15" />
+        <StatCard icon={<AlertTriangle size={18} />} label="Inadimplência" value={`${inadRate}%`} sub={fmt(totalPending)} color="bg-warning/30" />
+        <StatCard icon={<CreditCard size={18} />} label="Pagos" value={String(paid.length)} sub={`de ${records.length}`} color="bg-secondary/50" />
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-muted-foreground">
-              <th className="px-5 py-3 font-medium">Creche</th>
-              <th className="px-5 py-3 font-medium">Tipo</th>
-              <th className="px-5 py-3 font-medium">Valor</th>
-              <th className="px-5 py-3 font-medium">Data</th>
-              <th className="px-5 py-3 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.map((t, i) => (
-              <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
-                <td className="px-5 py-3 font-medium text-foreground">{t.creche}</td>
-                <td className="px-5 py-3 text-muted-foreground">{t.type}</td>
-                <td className="px-5 py-3 text-foreground">{t.value}</td>
-                <td className="px-5 py-3 text-muted-foreground">{t.date}</td>
-                <td className="px-5 py-3">
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${t.status === "Pago" ? "bg-success/40 text-success-foreground" : "bg-warning/30 text-warning-foreground"}`}>
-                    {t.status}
-                  </span>
-                </td>
+
+      <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden">
+        <div className="px-5 py-4 border-b border-border">
+          <h3 className="font-display font-bold text-foreground">Movimentações recentes</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-muted-foreground">
+                <th className="px-5 py-3 font-medium">Creche</th>
+                <th className="px-5 py-3 font-medium">Descrição</th>
+                <th className="px-5 py-3 font-medium">Valor</th>
+                <th className="px-5 py-3 font-medium">Vencimento</th>
+                <th className="px-5 py-3 font-medium">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={5} className="px-5 py-8 text-center text-muted-foreground"><Loader2 className="mx-auto h-6 w-6 animate-spin mb-2" />Carregando...</td></tr>
+              ) : records.length === 0 ? (
+                <tr><td colSpan={5} className="px-5 py-8 text-center text-muted-foreground">Nenhum registro financeiro.</td></tr>
+              ) : records.map((r) => (
+                <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                  <td className="px-5 py-3 font-medium text-foreground">{r.schools?.name || "-"}</td>
+                  <td className="px-5 py-3 text-muted-foreground">{r.description}</td>
+                  <td className="px-5 py-3 text-foreground">R$ {Number(r.amount).toFixed(2)}</td>
+                  <td className="px-5 py-3 text-muted-foreground">{new Date(r.due_date).toLocaleDateString("pt-BR")}</td>
+                  <td className="px-5 py-3">
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusColor[r.status] || "bg-muted"}`}>
+                      {statusLabel[r.status] || r.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  </DashboardLayout>
-);
+    </DashboardLayout>
+  );
+};
 
 export default FinanceiroPage;

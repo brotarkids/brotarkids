@@ -2,8 +2,9 @@ import { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import BrotarLogo from "@/components/BrotarLogo";
 import { Button } from "@/components/ui/button";
-import { Menu, X, LogOut, Bell, Shield, Users, User, GraduationCap } from "lucide-react";
+import { LogOut, Bell, Shield, Users, User, GraduationCap } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,27 +28,106 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ children, title, navItems, roleBadge }: DashboardLayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const isSuperAdmin = user?.email === 'brotarkids@gmail.com';
 
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        {/* Top header */}
+        <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border h-14 flex items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <BrotarLogo size="sm" />
+            <span className="text-xs font-bold font-display px-2 py-0.5 rounded-full bg-primary/20 text-primary-foreground/80">{roleBadge}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {isSuperAdmin && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Shield className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Acessar como:</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/superadmin")}>
+                    <Shield className="mr-2 h-4 w-4" /> Super Admin
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/admin")}>
+                    <Users className="mr-2 h-4 w-4" /> Admin
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/professor")}>
+                    <GraduationCap className="mr-2 h-4 w-4" /> Professor
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/responsavel")}>
+                    <User className="mr-2 h-4 w-4" /> Responsável
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell size={18} />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-warning rounded-full" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={async () => { await signOut(); navigate("/"); }}>
+              <LogOut size={16} />
+            </Button>
+          </div>
+        </header>
+
+        {/* Page title */}
+        <div className="px-4 pt-3 pb-1">
+          <h1 className="font-display font-bold text-lg text-foreground">{title}</h1>
+        </div>
+
+        {/* Main content — extra bottom padding for the nav bar */}
+        <main className="flex-1 p-4 overflow-auto pb-24">
+          {children}
+        </main>
+
+        {/* Bottom navigation bar */}
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border safe-area-bottom">
+          <div className="flex items-stretch justify-around h-16 max-w-lg mx-auto">
+            {navItems.slice(0, 5).map((item) => {
+              const active = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={`flex flex-col items-center justify-center gap-0.5 flex-1 text-[10px] font-medium transition-colors relative ${
+                    active
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {active && (
+                    <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-primary" />
+                  )}
+                  <span className={`transition-transform ${active ? "scale-110" : ""}`}>
+                    {item.icon}
+                  </span>
+                  <span className="truncate max-w-[56px]">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
+    );
+  }
+
+  // Desktop layout (unchanged)
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-foreground/20 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
-
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card border-r border-border flex flex-col transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
-        <div className="p-4 border-b border-border flex items-center justify-between">
+      <aside className="fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card border-r border-border flex flex-col">
+        <div className="p-4 border-b border-border">
           <BrotarLogo size="sm" />
-          <button className="lg:hidden" onClick={() => setSidebarOpen(false)}>
-            <X size={20} />
-          </button>
         </div>
 
         <div className="px-3 py-2">
@@ -64,7 +144,6 @@ const DashboardLayout = ({ children, title, navItems, roleBadge }: DashboardLayo
                   ? "bg-primary/15 text-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
-              onClick={() => setSidebarOpen(false)}
             >
               {item.icon}
               {item.label}
@@ -74,8 +153,8 @@ const DashboardLayout = ({ children, title, navItems, roleBadge }: DashboardLayo
 
         <div className="p-3 border-t border-border">
           <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground" onClick={async () => { await signOut(); navigate("/"); }}>
-              <LogOut size={16} />
-              Sair
+            <LogOut size={16} />
+            Sair
           </Button>
         </div>
       </aside>
@@ -83,17 +162,12 @@ const DashboardLayout = ({ children, title, navItems, roleBadge }: DashboardLayo
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border h-14 flex items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            <button className="lg:hidden" onClick={() => setSidebarOpen(true)}>
-              <Menu size={22} />
-            </button>
-            <h1 className="font-display font-bold text-lg text-foreground truncate">{title}</h1>
-          </div>
+          <h1 className="font-display font-bold text-lg text-foreground truncate">{title}</h1>
           <div className="flex items-center gap-2">
             {isSuperAdmin && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="hidden sm:flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
                     <Shield className="w-4 h-4" />
                     Trocar Painel
                   </Button>
@@ -101,16 +175,16 @@ const DashboardLayout = ({ children, title, navItems, roleBadge }: DashboardLayo
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Acessar como:</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => { console.log('Navigating to superadmin'); navigate("/superadmin"); }}>
+                  <DropdownMenuItem onClick={() => navigate("/superadmin")}>
                     <Shield className="mr-2 h-4 w-4" /> Super Admin
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { console.log('Navigating to admin'); navigate("/admin"); }}>
+                  <DropdownMenuItem onClick={() => navigate("/admin")}>
                     <Users className="mr-2 h-4 w-4" /> Admin da Escola
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { console.log('Navigating to professor'); navigate("/professor"); }}>
+                  <DropdownMenuItem onClick={() => navigate("/professor")}>
                     <GraduationCap className="mr-2 h-4 w-4" /> Professor
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { console.log('Navigating to responsavel'); navigate("/responsavel"); }}>
+                  <DropdownMenuItem onClick={() => navigate("/responsavel")}>
                     <User className="mr-2 h-4 w-4" /> Responsável
                   </DropdownMenuItem>
                 </DropdownMenuContent>

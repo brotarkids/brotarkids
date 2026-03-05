@@ -156,9 +156,9 @@ const UsuariosPage = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={4} className="px-5 py-8 text-center text-muted-foreground"><Loader2 className="mx-auto h-6 w-6 animate-spin mb-2" />Carregando...</td></tr>
+                <tr><td colSpan={5} className="px-5 py-8 text-center text-muted-foreground"><Loader2 className="mx-auto h-6 w-6 animate-spin mb-2" />Carregando...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={4} className="px-5 py-8 text-center text-muted-foreground">Nenhum usuário encontrado.</td></tr>
+                <tr><td colSpan={5} className="px-5 py-8 text-center text-muted-foreground">Nenhum usuário encontrado.</td></tr>
               ) : filtered.map((u) => (
                 <tr key={u.user_id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                   <td className="px-5 py-3 font-medium text-foreground">{u.full_name || "Sem nome"}</td>

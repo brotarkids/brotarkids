@@ -40,8 +40,16 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  if (allowedRoles && role && !allowedRoles.includes(role)) {
-    return <Navigate to={getRoleDashboard(role)} replace />;
+  if (allowedRoles && role) {
+    // Superadmin has access to everything
+    // Check if user is the specific superadmin email
+    if (user.email === 'brotarkids@gmail.com') return <>{children}</>;
+
+    if (role === 'superadmin') return <>{children}</>;
+    
+    if (!allowedRoles.includes(role)) {
+      return <Navigate to={getRoleDashboard(role)} replace />;
+    }
   }
 
   return <>{children}</>;

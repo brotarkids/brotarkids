@@ -2,8 +2,16 @@ import { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import BrotarLogo from "@/components/BrotarLogo";
 import { Button } from "@/components/ui/button";
-import { Menu, X, LogOut, Bell } from "lucide-react";
+import { Menu, X, LogOut, Bell, Shield, Users, User, GraduationCap } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NavItem {
   label: string;
@@ -21,8 +29,10 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ children, title, navItems, roleBadge }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
+
+  const isSuperAdmin = user?.email === 'brotarkids@gmail.com';
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -80,6 +90,32 @@ const DashboardLayout = ({ children, title, navItems, roleBadge }: DashboardLayo
             <h1 className="font-display font-bold text-lg text-foreground truncate">{title}</h1>
           </div>
           <div className="flex items-center gap-2">
+            {isSuperAdmin && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="hidden sm:flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    Trocar Painel
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Acessar como:</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => { console.log('Navigating to superadmin'); navigate("/superadmin"); }}>
+                    <Shield className="mr-2 h-4 w-4" /> Super Admin
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { console.log('Navigating to admin'); navigate("/admin"); }}>
+                    <Users className="mr-2 h-4 w-4" /> Admin da Escola
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { console.log('Navigating to professor'); navigate("/professor"); }}>
+                    <GraduationCap className="mr-2 h-4 w-4" /> Professor
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { console.log('Navigating to responsavel'); navigate("/responsavel"); }}>
+                    <User className="mr-2 h-4 w-4" /> Responsável
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Button variant="ghost" size="icon" className="relative">
               <Bell size={18} />
               <span className="absolute top-1 right-1 w-2 h-2 bg-warning rounded-full" />

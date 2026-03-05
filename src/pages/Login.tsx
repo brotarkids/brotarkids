@@ -18,7 +18,10 @@ const Login = () => {
   const { user, role, loading: authLoading } = useAuth();
 
   if (authLoading) return null;
-  if (user) return <Navigate to={getRoleDashboard(role)} replace />;
+  if (user) {
+    if (user.email === 'brotarkids@gmail.com') return <Navigate to="/superadmin" replace />;
+    return <Navigate to={getRoleDashboard(role)} replace />;
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

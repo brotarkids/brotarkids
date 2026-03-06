@@ -45,6 +45,7 @@ import CalendarioPage from "./pages/dashboard/responsavel/CalendarioPage";
 import PagamentosPage from "./pages/dashboard/responsavel/PagamentosPage";
 import MensagensPage from "./pages/dashboard/responsavel/MensagensPage";
 import PerfilCriancaPage from "./pages/dashboard/responsavel/PerfilCriancaPage";
+import NotificacoesConfigPage from "./pages/dashboard/responsavel/NotificacoesConfigPage";
 
 const queryClient = new QueryClient();
 

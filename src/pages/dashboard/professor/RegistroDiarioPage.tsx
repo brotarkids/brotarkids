@@ -147,6 +147,7 @@ const RegistroDiarioPage = () => {
         mood: data.mood || null,
         notes: data.notes || null,
         diaper: data.diaper || [],
+        photos: data.photos || [],
       };
 
       if (data.id) {

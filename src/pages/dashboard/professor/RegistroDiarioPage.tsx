@@ -91,6 +91,49 @@ const RegistroDiarioPage = () => {
     });
   };
 
+  const fileInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+
+  const handlePhotoUpload = async (studentId: string, files: FileList | null) => {
+    if (!files || files.length === 0 || !myClass) return;
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+
+    const uploadedUrls: string[] = [];
+    for (const file of Array.from(files)) {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${myClass.school_id}/${myClass.id}/${studentId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("children-media").upload(path, file, { upsert: false });
+      if (error) {
+        toast.error(`Erro ao enviar ${file.name}`);
+        continue;
+      }
+      const { data: urlData } = supabase.storage.from("children-media").getPublicUrl(path);
+      uploadedUrls.push(urlData.publicUrl);
+    }
+
+    if (uploadedUrls.length > 0) {
+      setLogs(prev => {
+        const newMap = new Map(prev);
+        const existing = newMap.get(studentId) || { student_id: studentId, class_id: myClass?.id, date: selectedDate };
+        const currentPhotos: string[] = existing.photos || [];
+        newMap.set(studentId, { ...existing, photos: [...currentPhotos, ...uploadedUrls], _dirty: true });
+        return newMap;
+      });
+      toast.success(`${uploadedUrls.length} foto(s) adicionada(s)!`);
+    }
+  };
+
+  const removePhoto = (studentId: string, url: string) => {
+    setLogs(prev => {
+      const newMap = new Map(prev);
+      const existing = newMap.get(studentId);
+      if (!existing) return prev;
+      const photos = (existing.photos || []).filter((p: string) => p !== url);
+      newMap.set(studentId, { ...existing, photos, _dirty: true });
+      return newMap;
+    });
+  };
+
   const handleSaveAll = async () => {
     setSaving(true);
     const dirtyLogs = Array.from(logs.values()).filter(l => l._dirty);

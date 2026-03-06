@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { LayoutDashboard, Users, GraduationCap, CreditCard, FileText, Settings, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";

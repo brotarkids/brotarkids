@@ -222,7 +222,7 @@ const CriancasPage = () => {
             token: token,
             student_id: studentId,
             status: 'pending'
-        }]);
+        }]) as any);
         
         if (!inviteError) {
           inviteSent = true;

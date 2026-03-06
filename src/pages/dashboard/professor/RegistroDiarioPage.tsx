@@ -237,10 +237,24 @@ const RegistroDiarioPage = () => {
                     <Baby size={18} className={hasDiaper ? "text-accent-foreground" : "text-muted-foreground"} />
                     <span className="text-xs text-muted-foreground">Fralda</span>
                   </button>
-                  <button className="flex flex-col items-center gap-1 p-3 rounded-xl bg-muted hover:bg-accent/40 transition-colors">
-                    <Camera size={18} className="text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Foto</span>
+                  <button
+                    onClick={() => {
+                      const input = fileInputRefs.current.get(child.id);
+                      if (input) input.click();
+                    }}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-colors ${photos.length > 0 ? "bg-primary/20" : "bg-muted hover:bg-accent/40"}`}
+                  >
+                    <Camera size={18} className={photos.length > 0 ? "text-primary" : "text-muted-foreground"} />
+                    <span className="text-xs text-muted-foreground">{photos.length > 0 ? `${photos.length} foto${photos.length > 1 ? "s" : ""}` : "Foto"}</span>
                   </button>
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    className="hidden"
+                    ref={el => { if (el) fileInputRefs.current.set(child.id, el); }}
+                    onChange={e => handlePhotoUpload(child.id, e.target.files)}
+                  />
                   <button onClick={() => toggleField(child.id, "mood")} className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-colors ${mood ? "bg-primary/20" : "bg-muted hover:bg-primary/15"}`}>
                     <Smile size={18} className={mood ? "text-primary" : "text-muted-foreground"} />
                     <span className="text-xs text-muted-foreground">{mood ? moodEmojis[mood] : "Humor"}</span>

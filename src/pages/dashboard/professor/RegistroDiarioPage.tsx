@@ -215,7 +215,7 @@ const RegistroDiarioPage = () => {
             const hasNap = log.nap && Object.keys(log.nap).length > 0;
             const hasDiaper = Array.isArray(log.diaper) && log.diaper.length > 0;
             const mood = log.mood;
-            const isExpanded = expandedStudent === child.id;
+            const photos: string[] = log.photos || [];
 
             return (
               <div key={child.id} className={`p-4 rounded-xl border transition-colors ${log._dirty ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}>

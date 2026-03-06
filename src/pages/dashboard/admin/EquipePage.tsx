@@ -84,11 +84,11 @@ const EquipePage = () => {
       setTeachers(schoolTeam);
 
       // Fetch pending invites
-      const { data: invitesData, error: invitesError } = await supabase
-        .from('invites')
+      const { data: invitesData, error: invitesError } = await (supabase
+        .from('invites' as any)
         .select('*')
         .eq('school_id', profile.school_id)
-        .eq('status', 'pending');
+        .eq('status', 'pending') as any);
 
       if (invitesError) throw invitesError;
       setInvites(invitesData || []);

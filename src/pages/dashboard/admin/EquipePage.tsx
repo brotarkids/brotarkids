@@ -115,15 +115,15 @@ const EquipePage = () => {
       setInviting(true);
       const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
-      const { error } = await supabase
-        .from('invites')
+      const { error } = await (supabase
+        .from('invites' as any)
         .insert([{
           school_id: profile.school_id,
           email: inviteEmail,
-          role: 'professor', // Default to professor for this page, maybe allow selecting admin later
+          role: 'professor',
           token: token,
           status: 'pending'
-        }]);
+        }]) as any);
 
       if (error) throw error;
 

@@ -27,19 +27,18 @@ const Signup = () => {
       const fetchInvite = async () => {
         // Use RPC to get invite details securely
         const { data, error } = await supabase
-          .rpc('get_invite_by_token', { token_input: token });
+          .rpc('get_invite_by_token' as any, { token_input: token });
 
         if (error || !data) {
           console.error("Error fetching invite:", error);
           toast.error("Convite inválido ou expirado.");
         } else {
-          // RPC returns flattened object, map it to state
-          // data structure: { id, email, role, school_id, school_name, student_id, token }
+          const inviteObj = data as any;
           setInviteData({
-            ...data,
-            schools: { name: data.school_name } // Map for compatibility with existing UI
+            ...inviteObj,
+            schools: { name: inviteObj.school_name }
           });
-          setEmail(data.email);
+          setEmail(inviteObj.email);
         }
       };
       fetchInvite();

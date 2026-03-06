@@ -65,7 +65,7 @@ const CrechesPage = () => {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      setSchools(data || []);
+      setSchools((data || []) as any);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar escolas",
@@ -110,15 +110,15 @@ const CrechesPage = () => {
 
       // 2. Generate Invite (Simulated)
       const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      const { error: inviteError } = await supabase
-        .from('invites')
+      const { error: inviteError } = await (supabase
+        .from('invites' as any)
         .insert([{
           school_id: schoolData.id,
           email: formData.email,
           role: 'admin',
           token: token,
           status: 'pending'
-        }]);
+        }]) as any);
 
       if (inviteError) {
         console.error("Error creating invite:", inviteError);

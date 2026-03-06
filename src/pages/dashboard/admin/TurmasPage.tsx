@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { LayoutDashboard, Users, GraduationCap, CreditCard, FileText, Settings, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -103,7 +103,7 @@ const TurmasPage = () => {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       setIsCreateOpen(false);
       setEditingClass(null);
-      setNewClass({ name: "", age_range: "", period: "", capacity: "20" });
+      setNewClass({ name: "", age_range: "", period: "", capacity: "20", teacher_id: "" });
       toast({ title: "Sucesso", description: "Turma salva com sucesso." });
     },
     onError: (error) => {

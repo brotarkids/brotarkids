@@ -84,11 +84,11 @@ const EquipePage = () => {
       setTeachers(schoolTeam);
 
       // Fetch pending invites
-      const { data: invitesData, error: invitesError } = await supabase
-        .from('invites')
+      const { data: invitesData, error: invitesError } = await (supabase
+        .from('invites' as any)
         .select('*')
         .eq('school_id', profile.school_id)
-        .eq('status', 'pending');
+        .eq('status', 'pending') as any);
 
       if (invitesError) throw invitesError;
       setInvites(invitesData || []);
@@ -115,15 +115,15 @@ const EquipePage = () => {
       setInviting(true);
       const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
-      const { error } = await supabase
-        .from('invites')
+      const { error } = await (supabase
+        .from('invites' as any)
         .insert([{
           school_id: profile.school_id,
           email: inviteEmail,
-          role: 'professor', // Default to professor for this page, maybe allow selecting admin later
+          role: 'professor',
           token: token,
           status: 'pending'
-        }]);
+        }]) as any);
 
       if (error) throw error;
 
@@ -149,10 +149,10 @@ const EquipePage = () => {
 
   const handleCancelInvite = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('invites')
+      const { error } = await (supabase
+        .from('invites' as any)
         .delete()
-        .eq('id', id);
+        .eq('id', id) as any);
       
       if (error) throw error;
       toast.success("Convite cancelado.");

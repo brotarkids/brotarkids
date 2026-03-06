@@ -99,10 +99,11 @@ const MensagensAdminPage = () => {
         return;
     }
     
-    const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, role").in("user_id", allUserIds);
+    const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", allUserIds);
     
-    const contactList = (profiles || []).map(p => {
-      const isTeacher = p.role === 'professor';
+    const teacherIds = new Set(schoolTeachers.map((t: any) => t.user_id));
+    const contactList = (profiles || []).map((p: any) => {
+      const isTeacher = teacherIds.has(p.user_id);
       const studentName = !isTeacher ? studentsData?.find(s => s.parent_id === p.user_id)?.name : null;
       return {
         userId: p.user_id,

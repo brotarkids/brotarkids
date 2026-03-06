@@ -215,14 +215,14 @@ const CriancasPage = () => {
       // Create Invite if parent was not found and email provided
       try {
         const token = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
-        const { error: inviteError } = await supabase.from("invites").insert([{
+        const { error: inviteError } = await (supabase.from("invites" as any).insert([{
             school_id: profile.school_id,
             email: formData.parent_email,
             role: 'responsavel',
             token: token,
             student_id: studentId,
             status: 'pending'
-        }]);
+        }]) as any);
         
         if (!inviteError) {
           inviteSent = true;

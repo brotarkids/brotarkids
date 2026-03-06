@@ -175,7 +175,8 @@ const CheckInPage = () => {
           class_id: student.class_id,
           date: today,
           present: true,
-          notes: "Check-in via Totem"
+          notes: "Check-in via Totem",
+          recorded_by: student.id
         }]);
         toast.success("Check-in realizado com sucesso!");
       }

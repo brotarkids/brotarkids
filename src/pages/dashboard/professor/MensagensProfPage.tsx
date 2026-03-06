@@ -9,14 +9,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-
-const navItems = [
-  { label: "Minha Turma", href: "/professor", icon: <LayoutDashboard size={18} /> },
-  { label: "Registro Diário", href: "/professor/registro", icon: <ClipboardList size={18} /> },
-  { label: "Planejamento", href: "/professor/planejamento", icon: <BookOpen size={18} /> },
-  { label: "Frequência", href: "/professor/frequencia", icon: <CalendarCheck size={18} /> },
-  { label: "Mensagens", href: "/professor/mensagens", icon: <MessageSquare size={18} /> },
-];
+import { professorNavItems } from "@/config/navigation";
 
 const MensagensProfPage = () => {
   const { user } = useAuth();
@@ -83,17 +76,49 @@ const MensagensProfPage = () => {
   // Load parents for new conversation
   const loadParents = async () => {
     if (!user) return;
-    const { data: classData } = await supabase.from("classes").select("id").eq("teacher_id", user.id).limit(1).maybeSingle();
-    if (!classData) return;
-    const { data: studentsData } = await supabase.from("students").select("parent_id, name").eq("class_id", classData.id).eq("status", "active");
-    const parentIds = (studentsData || []).map(s => s.parent_id).filter(Boolean);
+    
+    // Get all classes for the teacher
+    const { data: classesData } = await supabase
+      .from("classes")
+      .select("id, name")
+      .eq("teacher_id", user.id);
+      
+    if (!classesData || classesData.length === 0) return;
+    
+    const classIds = classesData.map(c => c.id);
+
+    // Get students from all classes
+    const { data: studentsData } = await supabase
+      .from("students")
+      .select("parent_id, name, class_id")
+      .in("class_id", classIds)
+      .eq("status", "active");
+      
+    const parentIds = (studentsData || [])
+      .map(s => s.parent_id)
+      .filter((id): id is string => !!id); // Filter out null/undefined and ensure type string
+      
     if (parentIds.length === 0) return;
-    const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", parentIds);
-    const parentList = (profiles || []).map(p => ({
-      userId: p.user_id,
-      name: p.full_name || "Responsável",
-      childName: studentsData?.find(s => s.parent_id === p.user_id)?.name || "",
-    }));
+    
+    // Get parent profiles
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .in("user_id", parentIds);
+      
+    // Map to display format
+    const parentList = (profiles || []).map(p => {
+      // Find one student associated with this parent (could be multiple, just picking one for context)
+      const student = studentsData?.find(s => s.parent_id === p.user_id);
+      const studentClass = classesData.find(c => c.id === student?.class_id);
+      
+      return {
+        userId: p.user_id,
+        name: p.full_name || "Responsável",
+        childName: student ? `${student.name} (${studentClass?.name})` : "",
+      };
+    });
+    
     setParents(parentList);
   };
 
@@ -157,14 +182,14 @@ const MensagensProfPage = () => {
 
   if (loading) {
     return (
-      <DashboardLayout title="Mensagens" navItems={navItems} roleBadge="Professor(a)">
+      <DashboardLayout title="Mensagens" navItems={professorNavItems} roleBadge="Professor(a)">
         <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout title="Mensagens" navItems={navItems} roleBadge="Professor(a)">
+    <DashboardLayout title="Mensagens" navItems={professorNavItems} roleBadge="Professor(a)">
       <div className="grid lg:grid-cols-3 gap-6 h-[calc(100vh-10rem)]">
         {/* Sidebar */}
         <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden flex flex-col">

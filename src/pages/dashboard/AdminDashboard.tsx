@@ -1,21 +1,14 @@
+import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import StatCard from "@/components/dashboard/StatCard";
 import { LayoutDashboard, Users, GraduationCap, CreditCard, FileText, Settings, UserCheck, AlertTriangle, Heart, Loader2, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserProfile } from "@/hooks/useUserProfile";
-
-const navItems = [
-  { label: "Visão Geral", href: "/admin", icon: <LayoutDashboard size={18} /> },
-  { label: "Crianças", href: "/admin/criancas", icon: <Users size={18} /> },
-  { label: "Turmas", href: "/admin/turmas", icon: <GraduationCap size={18} /> },
-  { label: "Financeiro", href: "/admin/financeiro", icon: <CreditCard size={18} /> },
-  { label: "Relatórios", href: "/admin/relatorios", icon: <FileText size={18} /> },
-  { label: "Assinatura", href: "/admin/assinatura", icon: <Crown size={18} /> },
-  { label: "Configurações", href: "/admin/config", icon: <Settings size={18} /> },
-];
+import { adminNavItems } from "@/config/navigation";
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const { data: profile } = useUserProfile();
   const [stats, setStats] = useState({ students: 0, capacity: 0, pending: 0, classes: [] as any[] });
   const [loading, setLoading] = useState(true);
@@ -66,14 +59,14 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <DashboardLayout title="Minha Creche" navItems={navItems} roleBadge="Diretor(a)">
+      <DashboardLayout title="Minha Creche" navItems={adminNavItems} roleBadge="Diretor(a)">
         <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout title="Minha Creche" navItems={navItems} roleBadge="Diretor(a)">
+    <DashboardLayout title="Minha Creche" navItems={adminNavItems} roleBadge="Diretor(a)">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard icon={<Users size={18} />} label="Ocupação" value={`${occupancyPct}%`} sub={`${stats.students} de ${stats.capacity} vagas`} color="bg-primary/15" />
         <StatCard icon={<CreditCard size={18} />} label="Pendente" value={`R$ ${stats.pending.toFixed(0)}`} color="bg-warning/30" />
@@ -105,11 +98,18 @@ const AdminDashboard = () => {
         <div className="bg-card rounded-2xl p-5 shadow-card border border-border">
           <h3 className="font-display font-bold text-foreground mb-4">Ações rápidas</h3>
           <div className="space-y-2">
-            {["Nova matrícula", "Gerar boletos", "Enviar comunicado", "Ver relatório semanal"].map((action) => (
-              <button key={action} className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted transition-colors">
-                {action}
-              </button>
-            ))}
+            <button onClick={() => navigate("/admin/criancas")} className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted transition-colors">
+              Nova matrícula
+            </button>
+            <button onClick={() => navigate("/admin/financeiro")} className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted transition-colors">
+              Gerar boletos
+            </button>
+            <button onClick={() => navigate("/admin/mensagens")} className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted transition-colors">
+              Enviar comunicado
+            </button>
+            <button onClick={() => navigate("/admin/relatorios")} className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted transition-colors">
+              Ver relatório semanal
+            </button>
           </div>
         </div>
       </div>

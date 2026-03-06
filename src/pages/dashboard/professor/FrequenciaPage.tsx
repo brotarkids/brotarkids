@@ -5,19 +5,21 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { professorNavItems } from "@/config/navigation";
 
-const navItems = [
-  { label: "Minha Turma", href: "/professor", icon: <LayoutDashboard size={18} /> },
-  { label: "Registro Diário", href: "/professor/registro", icon: <ClipboardList size={18} /> },
-  { label: "Planejamento", href: "/professor/planejamento", icon: <BookOpen size={18} /> },
-  { label: "Frequência", href: "/professor/frequencia", icon: <CalendarCheck size={18} /> },
-  { label: "Mensagens", href: "/professor/mensagens", icon: <MessageSquare size={18} /> },
-];
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const FrequenciaPage = () => {
   const { user } = useAuth();
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [students, setStudents] = useState<any[]>([]);
-  const [myClass, setMyClass] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
@@ -50,25 +52,42 @@ const FrequenciaPage = () => {
 
   useEffect(() => {
     if (!user) return;
-    const load = async () => {
-      const { data: classData } = await supabase.from("classes").select("*").eq("teacher_id", user.id).limit(1).maybeSingle();
-      setMyClass(classData);
-
-      if (classData) {
-        const { data } = await supabase.from("students").select("*").eq("class_id", classData.id).eq("status", "active").order("name");
-        const studentList = data || [];
-        setStudents(studentList);
-        await loadAttendance(classData.id, studentList, selectedDate);
+    const loadClasses = async () => {
+      const { data: classesData } = await supabase
+        .from("classes")
+        .select("*")
+        .eq("teacher_id", user.id)
+        .order("name");
+      
+      if (classesData && classesData.length > 0) {
+        setClasses(classesData);
+        setSelectedClassId(classesData[0].id);
       }
       setLoading(false);
     };
-    load();
+    loadClasses();
   }, [user]);
 
   useEffect(() => {
-    if (!myClass || students.length === 0) return;
-    loadAttendance(myClass.id, students, selectedDate);
-  }, [selectedDate, myClass, students, loadAttendance]);
+    if (!selectedClassId) return;
+    
+    const loadStudentsAndAttendance = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("students")
+        .select("*")
+        .eq("class_id", selectedClassId)
+        .eq("status", "active")
+        .order("name");
+      
+      const studentList = data || [];
+      setStudents(studentList);
+      await loadAttendance(selectedClassId, studentList, selectedDate);
+      setLoading(false);
+    };
+
+    loadStudentsAndAttendance();
+  }, [selectedClassId, selectedDate, loadAttendance]);
 
   const toggleAttendance = (id: string) => {
     setAttendance(prev => {
@@ -87,7 +106,7 @@ const FrequenciaPage = () => {
   };
 
   const handleSave = async () => {
-    if (!user || !myClass) return;
+    if (!user || !selectedClassId) return;
     setSaving(true);
 
     const upserts = students.map(s => {
@@ -95,7 +114,7 @@ const FrequenciaPage = () => {
       return {
         ...(rec.id ? { id: rec.id } : {}),
         student_id: s.id,
-        class_id: myClass.id,
+        class_id: selectedClassId,
         date: selectedDate,
         present: rec.present,
         notes: rec.notes || null,
@@ -110,7 +129,7 @@ const FrequenciaPage = () => {
     } else {
       toast.success("Frequência salva!");
       setDirty(false);
-      await loadAttendance(myClass.id, students, selectedDate);
+      await loadAttendance(selectedClassId, students, selectedDate);
     }
     setSaving(false);
   };
@@ -123,30 +142,51 @@ const FrequenciaPage = () => {
 
   if (loading) {
     return (
-      <DashboardLayout title="Frequência" navItems={navItems} roleBadge="Professor(a)">
+      <DashboardLayout title="Frequência" navItems={professorNavItems} roleBadge="Professor(a)">
         <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       </DashboardLayout>
     );
   }
 
-  if (!myClass) {
+  if (!classes.length && !loading) {
     return (
-      <DashboardLayout title="Frequência" navItems={navItems} roleBadge="Professor(a)">
-        <p className="text-center py-12 text-muted-foreground">Nenhuma turma atribuída.</p>
+      <DashboardLayout title="Frequência" navItems={professorNavItems} roleBadge="Professor(a)">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Nenhuma turma atribuída a você ainda.</p>
+        </div>
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout title="Frequência" navItems={navItems} roleBadge="Professor(a)">
+    <DashboardLayout title="Frequência" navItems={professorNavItems} roleBadge="Professor(a)">
       <div className="bg-card rounded-2xl p-5 shadow-card border border-border">
         {/* Date nav + save */}
-        <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => changeDate(-1)}><ChevronLeft size={18} /></Button>
-            <h3 className="font-display font-bold text-foreground capitalize text-sm sm:text-base">{dateLabel}</h3>
-            <Button variant="ghost" size="icon" onClick={() => changeDate(1)}><ChevronRight size={18} /></Button>
+        <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
+          
+          <div className="flex items-center gap-4 w-full sm:w-auto">
+            {classes.length > 1 ? (
+              <Select value={selectedClassId || ""} onValueChange={setSelectedClassId}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Selecione a turma" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <h2 className="text-lg font-bold">{classes[0]?.name}</h2>
+            )}
+            
+            <div className="flex items-center gap-2 ml-auto sm:ml-0">
+               <Button variant="ghost" size="icon" onClick={() => changeDate(-1)}><ChevronLeft size={18} /></Button>
+               <span className="font-medium capitalize text-sm">{dateLabel}</span>
+               <Button variant="ghost" size="icon" onClick={() => changeDate(1)}><ChevronRight size={18} /></Button>
+            </div>
           </div>
+
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">{presentCount}/{students.length} presentes</span>
             <Button variant="default" size="sm" onClick={handleSave} disabled={saving || !dirty}>

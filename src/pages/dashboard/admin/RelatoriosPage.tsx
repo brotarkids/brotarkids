@@ -1,15 +1,7 @@
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { LayoutDashboard, Users, GraduationCap, CreditCard, FileText, Settings, Download, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const navItems = [
-  { label: "Visão Geral", href: "/admin", icon: <LayoutDashboard size={18} /> },
-  { label: "Crianças", href: "/admin/criancas", icon: <Users size={18} /> },
-  { label: "Turmas", href: "/admin/turmas", icon: <GraduationCap size={18} /> },
-  { label: "Financeiro", href: "/admin/financeiro", icon: <CreditCard size={18} /> },
-  { label: "Relatórios", href: "/admin/relatorios", icon: <FileText size={18} /> },
-  { label: "Configurações", href: "/admin/config", icon: <Settings size={18} /> },
-];
+import { adminNavItems } from "@/config/navigation";
 
 const reports = [
   { title: "Frequência mensal", desc: "Relatório de presença por turma", icon: <Calendar size={20} />, color: "bg-primary/15" },
@@ -19,7 +11,7 @@ const reports = [
 ];
 
 const RelatoriosPage = () => (
-  <DashboardLayout title="Relatórios" navItems={navItems} roleBadge="Diretor(a)">
+  <DashboardLayout title="Relatórios" navItems={adminNavItems} roleBadge="Diretor(a)">
     <div className="grid sm:grid-cols-2 gap-4">
       {reports.map((r) => (
         <div key={r.title} className="bg-card rounded-2xl p-5 shadow-card border border-border">

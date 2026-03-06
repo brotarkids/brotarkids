@@ -15,6 +15,7 @@ const Header = () => {
         </Link>
 
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
+          <Link to="/checkin" className="hover:text-foreground transition-colors">Check-in</Link>
           <a href="#beneficios" className="hover:text-foreground transition-colors">Benefícios</a>
           <a href="#precos" className="hover:text-foreground transition-colors">Preços</a>
           <a href="#depoimentos" className="hover:text-foreground transition-colors">Depoimentos</a>
@@ -36,6 +37,7 @@ const Header = () => {
 
       {open && (
         <div className="md:hidden border-t border-border bg-card p-4 space-y-3 animate-fade-up">
+          <Link to="/checkin" className="block py-2 text-muted-foreground" onClick={() => setOpen(false)}>Check-in</Link>
           <a href="#beneficios" className="block py-2 text-muted-foreground" onClick={() => setOpen(false)}>Benefícios</a>
           <a href="#precos" className="block py-2 text-muted-foreground" onClick={() => setOpen(false)}>Preços</a>
           <a href="#depoimentos" className="block py-2 text-muted-foreground" onClick={() => setOpen(false)}>Depoimentos</a>

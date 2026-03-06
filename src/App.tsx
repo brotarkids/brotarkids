@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/components/whitelabel/ThemeContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -14,6 +15,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
+import CheckInPage from "./pages/public/CheckInPage";
 
 // SuperAdmin
 import SuperAdminDashboard from "./pages/dashboard/SuperAdminDashboard";
@@ -31,6 +33,9 @@ import FinanceiroAdminPage from "./pages/dashboard/admin/FinanceiroAdminPage";
 import RelatoriosPage from "./pages/dashboard/admin/RelatoriosPage";
 import AssinaturaPage from "./pages/dashboard/admin/AssinaturaPage";
 import ConfigAdminPage from "./pages/dashboard/admin/ConfigAdminPage";
+import EquipePage from "./pages/dashboard/admin/EquipePage";
+import OnboardingPage from "./pages/dashboard/admin/OnboardingPage";
+import MensagensAdminPage from "./pages/dashboard/admin/MensagensAdminPage";
 
 // Professor
 import ProfessorDashboard from "./pages/dashboard/ProfessorDashboard";
@@ -58,13 +63,15 @@ const App = () => (
         <PWAInstallBanner />
         <BrowserRouter>
           <AuthProvider>
-            <Routes>
+            <ThemeProvider>
+              <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/checkin" element={<CheckInPage />} />
 
               {/* SuperAdmin */}
               <Route path="/superadmin" element={<ProtectedRoute allowedRoles={["superadmin"]}><SuperAdminDashboard /></ProtectedRoute>} />
@@ -82,9 +89,13 @@ const App = () => (
               <Route path="/admin/relatorios" element={<ProtectedRoute allowedRoles={["superadmin", "admin"]}><RelatoriosPage /></ProtectedRoute>} />
               <Route path="/admin/assinatura" element={<ProtectedRoute allowedRoles={["superadmin", "admin"]}><AssinaturaPage /></ProtectedRoute>} />
               <Route path="/admin/config" element={<ProtectedRoute allowedRoles={["superadmin", "admin"]}><ConfigAdminPage /></ProtectedRoute>} />
+              <Route path="/admin/equipe" element={<ProtectedRoute allowedRoles={["superadmin", "admin"]}><EquipePage /></ProtectedRoute>} />
+              <Route path="/admin/mensagens" element={<ProtectedRoute allowedRoles={["superadmin", "admin"]}><MensagensAdminPage /></ProtectedRoute>} />
+              <Route path="/onboarding" element={<ProtectedRoute allowedRoles={["admin"]}><OnboardingPage /></ProtectedRoute>} />
 
               {/* Professor */}
               <Route path="/professor" element={<ProtectedRoute allowedRoles={["superadmin", "admin", "professor"]}><ProfessorDashboard /></ProtectedRoute>} />
+              <Route path="/professor/alunos" element={<ProtectedRoute allowedRoles={["superadmin", "admin", "professor"]}><CriancasPage /></ProtectedRoute>} />
               <Route path="/professor/registro" element={<ProtectedRoute allowedRoles={["superadmin", "admin", "professor"]}><RegistroDiarioPage /></ProtectedRoute>} />
               <Route path="/professor/planejamento" element={<ProtectedRoute allowedRoles={["superadmin", "admin", "professor"]}><PlanejamentoPage /></ProtectedRoute>} />
               <Route path="/professor/frequencia" element={<ProtectedRoute allowedRoles={["superadmin", "admin", "professor"]}><FrequenciaPage /></ProtectedRoute>} />
@@ -100,6 +111,7 @@ const App = () => (
 
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </ThemeProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

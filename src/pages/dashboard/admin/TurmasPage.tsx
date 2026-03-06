@@ -11,14 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast"; // Corrigir import se necessário
 import { useUserProfile } from "@/hooks/useUserProfile"; // Criar esse hook se não existir ou importar de onde estiver
 
-const navItems = [
-  { label: "Visão Geral", href: "/admin", icon: <LayoutDashboard size={18} /> },
-  { label: "Crianças", href: "/admin/criancas", icon: <Users size={18} /> },
-  { label: "Turmas", href: "/admin/turmas", icon: <GraduationCap size={18} /> },
-  { label: "Financeiro", href: "/admin/financeiro", icon: <CreditCard size={18} /> },
-  { label: "Relatórios", href: "/admin/relatorios", icon: <FileText size={18} /> },
-  { label: "Configurações", href: "/admin/config", icon: <Settings size={18} /> },
-];
+import { adminNavItems } from "@/config/navigation";
 
 const TurmasPage = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -32,95 +25,141 @@ const TurmasPage = () => {
     age_range: "",
     period: "",
     capacity: "20",
+    teacher_id: "",
   });
+
+  const [editingClass, setEditingClass] = useState<any>(null);
+
+  const [teachers, setTeachers] = useState<any[]>([]);
 
   // Fetch classes
   const { data: classes, isLoading } = useQuery({
     queryKey: ["classes", profile?.school_id],
     queryFn: async () => {
-      // Se for superadmin e não tiver escola, busca todas? 
-      // Por enquanto vamos focar na escola do usuário ou todas se for superadmin sem escola
       let query = supabase.from("classes").select(`
         *,
-        schools (name)
+        schools (name),
+        profiles:teacher_id (full_name)
       `);
 
       if (profile?.school_id) {
         query = query.eq("school_id", profile.school_id);
+      } else {
+        query = query.order("name");
       }
 
       const { data, error } = await query;
       if (error) throw error;
       return data;
     },
-    enabled: true, // Sempre tenta buscar, RLS vai filtrar
+    enabled: true,
   });
 
-  // Create class mutation
-  const createClassMutation = useMutation({
-    mutationFn: async (classData: typeof newClass) => {
-      if (!profile?.school_id) {
-        // Fallback for superadmin creating without school_id attached to profile
-        // In a real app, superadmin would select the school first.
-        // For now, let's try to find the first school or fail
-        const { data: schools } = await supabase.from("schools").select("id").limit(1);
-        if (schools && schools.length > 0) {
-           // Use first school found if user has no school
-           return await supabase.from("classes").insert([{
-             ...classData,
-             school_id: schools[0].id,
-             capacity: parseInt(classData.capacity)
-           }]);
-        }
-        throw new Error("Nenhuma escola vinculada ao usuário para criar turma.");
+  // Fetch teachers
+  useEffect(() => {
+    const fetchTeachers = async () => {
+      if (!profile?.school_id) return;
+      try {
+        const { data: users, error } = await supabase.rpc('get_all_users_with_email');
+        if (error) throw error;
+        // Filter for this school and role 'professor'
+        const schoolTeachers = users.filter((u: any) => 
+          u.school_id === profile.school_id && u.role === 'professor'
+        );
+        setTeachers(schoolTeachers || []);
+      } catch (err) {
+        console.error("Error fetching teachers:", err);
       }
+    };
+    fetchTeachers();
+  }, [profile?.school_id]);
 
-      return await supabase.from("classes").insert([{
-        ...classData,
-        school_id: profile.school_id,
-        capacity: parseInt(classData.capacity)
-      }]);
+  // Create/Update class mutation
+  const saveClassMutation = useMutation({
+    mutationFn: async (classData: typeof newClass & { id?: string }) => {
+      const payload = {
+        name: classData.name,
+        age_range: classData.age_range,
+        period: classData.period,
+        capacity: parseInt(classData.capacity),
+        teacher_id: (classData.teacher_id && classData.teacher_id !== "_empty") ? classData.teacher_id : null
+      };
+
+      if (classData.id) {
+        // Update
+        return await supabase.from("classes").update(payload).eq("id", classData.id);
+      } else {
+        // Create
+        let schoolId = profile?.school_id;
+        if (!schoolId) {
+          const { data: schools } = await supabase.from("schools").select("id").limit(1);
+          if (schools && schools.length > 0) schoolId = schools[0].id;
+          else throw new Error("Nenhuma escola vinculada.");
+        }
+        return await supabase.from("classes").insert([{ ...payload, school_id: schoolId }]);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       setIsCreateOpen(false);
+      setEditingClass(null);
       setNewClass({ name: "", age_range: "", period: "", capacity: "20" });
-      toast({
-        title: "Turma criada",
-        description: "A turma foi criada com sucesso.",
-      });
+      toast({ title: "Sucesso", description: "Turma salva com sucesso." });
     },
     onError: (error) => {
-      toast({
-        title: "Erro ao criar turma",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
     },
   });
 
-  const handleCreate = () => {
+  const deleteClassMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await supabase.from("classes").delete().eq("id", id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      toast({ title: "Sucesso", description: "Turma excluída." });
+    },
+    onError: (error) => {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleSave = () => {
     if (!newClass.name || !newClass.period) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Preencha nome e período.",
-        variant: "destructive",
-      });
+      toast({ title: "Campos obrigatórios", description: "Preencha nome e período.", variant: "destructive" });
       return;
     }
-    createClassMutation.mutate(newClass);
+    saveClassMutation.mutate({ ...newClass, id: editingClass?.id });
   };
 
+  const openEdit = (cls: any) => {
+    setEditingClass(cls);
+    setNewClass({
+        name: cls.name,
+        age_range: cls.age_range || "",
+        period: cls.period || "",
+        capacity: String(cls.capacity || "20"),
+        teacher_id: cls.teacher_id || "_empty",
+      });
+      setIsCreateOpen(true);
+    };
+  
+    const openCreate = () => {
+      setEditingClass(null);
+      setNewClass({ name: "", age_range: "", period: "", capacity: "20", teacher_id: "_empty" });
+      setIsCreateOpen(true);
+    };
+
   return (
-    <DashboardLayout title="Turmas" navItems={navItems} roleBadge="Diretor(a)">
+    <DashboardLayout title="Turmas" navItems={adminNavItems} roleBadge="Diretor(a)">
       <div className="flex justify-end mb-6">
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <Dialog open={isCreateOpen} onOpenChange={(open) => { setIsCreateOpen(open); if(!open) setEditingClass(null); }}>
           <DialogTrigger asChild>
-            <Button variant="default" size="sm"><Plus size={16} /> Nova Turma</Button>
+            <Button variant="default" size="sm" onClick={openCreate}><Plus size={16} /> Nova Turma</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Nova Turma</DialogTitle>
+              <DialogTitle>{editingClass ? "Editar Turma" : "Nova Turma"}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
@@ -166,11 +205,28 @@ const TurmasPage = () => {
                   onChange={(e) => setNewClass({...newClass, capacity: e.target.value})}
                 />
               </div>
+              <div className="grid gap-2">
+                <Label htmlFor="teacher">Professor Responsável</Label>
+                <Select 
+                  value={newClass.teacher_id} 
+                  onValueChange={(value) => setNewClass({...newClass, teacher_id: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um professor..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_empty">Sem professor</SelectItem>
+                    {teachers.map((t) => (
+                      <SelectItem key={t.user_id} value={t.user_id}>{t.full_name || t.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-              <Button onClick={handleCreate} disabled={createClassMutation.isPending}>
-                {createClassMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button onClick={handleSave} disabled={saveClassMutation.isPending}>
+                {saveClassMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Salvar
               </Button>
             </DialogFooter>
@@ -196,7 +252,12 @@ const TurmasPage = () => {
                 <div className="flex justify-between"><span className="text-muted-foreground">Faixa etária</span><span className="text-foreground">{t.age_range || "N/A"}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Capacidade</span><span className="text-foreground font-medium">{t.capacity}</span></div>
               </div>
-              <Button variant="ghost" size="sm" className="mt-4 w-full text-primary">Ver detalhes</Button>
+              <div className="flex gap-2 mt-4">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(t)}>Editar</Button>
+                <Button variant="destructive" size="sm" onClick={() => {
+                  if (confirm("Tem certeza que deseja excluir esta turma?")) deleteClassMutation.mutate(t.id);
+                }}>Excluir</Button>
+              </div>
             </div>
           ))}
           {classes?.length === 0 && (

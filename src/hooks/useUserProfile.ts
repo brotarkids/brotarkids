@@ -12,7 +12,7 @@ export function useUserProfile() {
       
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select("*, schools(name, logo_url, color_palette, primary_color)")
         .eq("user_id", user.id)
         .single();
 

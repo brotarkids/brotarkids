@@ -1,18 +1,11 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import StatCard from "@/components/dashboard/StatCard";
-import { LayoutDashboard, BookOpen, CalendarCheck, MessageSquare, Camera, ClipboardList, Smile, Moon, Utensils, Loader2 } from "lucide-react";
+import { LayoutDashboard, BookOpen, CalendarCheck, MessageSquare, Camera, ClipboardList, Smile, Moon, Utensils, Loader2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-
-const navItems = [
-  { label: "Minha Turma", href: "/professor", icon: <LayoutDashboard size={18} /> },
-  { label: "Registro Diário", href: "/professor/registro", icon: <ClipboardList size={18} /> },
-  { label: "Planejamento", href: "/professor/planejamento", icon: <BookOpen size={18} /> },
-  { label: "Frequência", href: "/professor/frequencia", icon: <CalendarCheck size={18} /> },
-  { label: "Mensagens", href: "/professor/mensagens", icon: <MessageSquare size={18} /> },
-];
+import { professorNavItems } from "@/config/navigation";
 
 const ProfessorDashboard = () => {
   const { user } = useAuth();
@@ -60,7 +53,7 @@ const ProfessorDashboard = () => {
 
   if (loading) {
     return (
-      <DashboardLayout title="Minha Turma" navItems={navItems} roleBadge="Professor(a)">
+      <DashboardLayout title="Minha Turma" navItems={professorNavItems} roleBadge="Professor(a)">
         <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       </DashboardLayout>
     );
@@ -68,7 +61,7 @@ const ProfessorDashboard = () => {
 
   if (!myClass) {
     return (
-      <DashboardLayout title="Minha Turma" navItems={navItems} roleBadge="Professor(a)">
+      <DashboardLayout title="Minha Turma" navItems={professorNavItems} roleBadge="Professor(a)">
         <div className="text-center py-12">
           <p className="text-muted-foreground">Nenhuma turma atribuída a você ainda.</p>
           <p className="text-sm text-muted-foreground mt-2">Peça ao administrador para vincular uma turma ao seu perfil.</p>
@@ -78,7 +71,7 @@ const ProfessorDashboard = () => {
   }
 
   return (
-    <DashboardLayout title={myClass.name || "Minha Turma"} navItems={navItems} roleBadge="Professor(a)">
+    <DashboardLayout title={myClass.name || "Minha Turma"} navItems={professorNavItems} roleBadge="Professor(a)">
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard icon={<CalendarCheck size={18} />} label="Alunos" value={String(students.length)} sub={`Capacidade: ${myClass.capacity || "?"}`} color="bg-success/40" />
         <StatCard icon={<ClipboardList size={18} />} label="Registros hoje" value={String(logs.length)} sub={`de ${students.length}`} color="bg-primary/15" />

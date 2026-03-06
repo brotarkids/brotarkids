@@ -11,14 +11,7 @@ import { useAIPedagogy } from "@/hooks/useAIPedagogy";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-
-const navItems = [
-  { label: "Minha Turma", href: "/professor", icon: <LayoutDashboard size={18} /> },
-  { label: "Registro Diário", href: "/professor/registro", icon: <ClipboardList size={18} /> },
-  { label: "Planejamento", href: "/professor/planejamento", icon: <BookOpen size={18} /> },
-  { label: "Frequência", href: "/professor/frequencia", icon: <CalendarCheck size={18} /> },
-  { label: "Mensagens", href: "/professor/mensagens", icon: <MessageSquare size={18} /> },
-];
+import { professorNavItems } from "@/config/navigation";
 
 const getWeekRange = (refDate: Date) => {
   const d = new Date(refDate);
@@ -40,7 +33,8 @@ const statusLabels: Record<string, string> = { planned: "Planejado", done: "Conc
 
 const PlanejamentoPage = () => {
   const { user } = useAuth();
-  const [myClass, setMyClass] = useState<any>(null);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [weekRef, setWeekRef] = useState(() => new Date());
@@ -77,17 +71,20 @@ const PlanejamentoPage = () => {
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const { data: classData } = await supabase.from("classes").select("*").eq("teacher_id", user.id).limit(1).maybeSingle();
-      setMyClass(classData);
-      if (classData) await loadPlans(classData.id);
+      const { data: classesData } = await supabase.from("classes").select("*").eq("teacher_id", user.id);
+      setClasses(classesData || []);
+      if (classesData && classesData.length > 0) {
+        setSelectedClassId(classesData[0].id);
+        await loadPlans(classesData[0].id);
+      }
       setLoading(false);
     };
     load();
   }, [user]);
 
   useEffect(() => {
-    if (myClass) loadPlans(myClass.id);
-  }, [weekRef, myClass]);
+    if (selectedClassId) loadPlans(selectedClassId);
+  }, [weekRef, selectedClassId]);
 
   const resetForm = () => {
     setTitle(""); setDescription(""); setBnccCode(""); setPlannedDate(""); setStatus("planned"); setEditingPlan(null);
@@ -101,10 +98,10 @@ const PlanejamentoPage = () => {
   };
 
   const handleSave = async () => {
-    if (!user || !myClass || !title.trim() || !plannedDate) return;
+    if (!user || !selectedClassId || !title.trim() || !plannedDate) return;
     setSaving(true);
     const payload = {
-      class_id: myClass.id,
+      class_id: selectedClassId,
       teacher_id: user.id,
       title: title.trim(),
       description: description.trim() || null,
@@ -121,21 +118,21 @@ const PlanejamentoPage = () => {
     }
 
     if (error) { toast.error("Erro ao salvar plano"); console.error(error); }
-    else { toast.success(editingPlan ? "Plano atualizado!" : "Plano criado!"); setDialogOpen(false); resetForm(); await loadPlans(myClass.id); }
+    else { toast.success(editingPlan ? "Plano atualizado!" : "Plano criado!"); setDialogOpen(false); resetForm(); await loadPlans(selectedClassId); }
     setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
-    if (!myClass) return;
+    if (!selectedClassId) return;
     const { error } = await supabase.from("lesson_plans" as any).delete().eq("id", id);
     if (error) toast.error("Erro ao excluir");
-    else { toast.success("Plano excluído"); await loadPlans(myClass.id); }
+    else { toast.success("Plano excluído"); await loadPlans(selectedClassId); }
   };
 
   const handleToggleStatus = async (plan: any) => {
     const next = plan.status === "done" ? "planned" : "done";
     await supabase.from("lesson_plans" as any).update({ status: next }).eq("id", plan.id);
-    if (myClass) await loadPlans(myClass.id);
+    if (selectedClassId) await loadPlans(selectedClassId);
   };
 
   const changeWeek = (dir: number) => {
@@ -161,25 +158,42 @@ const PlanejamentoPage = () => {
 
   if (loading) {
     return (
-      <DashboardLayout title="Planejamento" navItems={navItems} roleBadge="Professor(a)">
+      <DashboardLayout title="Planejamento Pedagógico" navItems={professorNavItems} roleBadge="Professor(a)">
         <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       </DashboardLayout>
     );
   }
 
-  if (!myClass) {
+  if (classes.length === 0) {
     return (
-      <DashboardLayout title="Planejamento" navItems={navItems} roleBadge="Professor(a)">
-        <p className="text-center py-12 text-muted-foreground">Nenhuma turma atribuída.</p>
+      <DashboardLayout title="Planejamento Pedagógico" navItems={professorNavItems} roleBadge="Professor(a)">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Nenhuma turma atribuída a você ainda.</p>
+        </div>
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout title="Planejamento" navItems={navItems} roleBadge="Professor(a)">
+    <DashboardLayout title="Planejamento Pedagógico" navItems={professorNavItems} roleBadge="Professor(a)">
       {/* Header */}
       <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {classes.length > 1 ? (
+            <Select value={selectedClassId || ""} onValueChange={setSelectedClassId}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Selecione a turma" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <h2 className="text-lg font-bold mr-2">{classes[0]?.name}</h2>
+          )}
+
           <Button variant="ghost" size="icon" onClick={() => changeWeek(-1)}><ChevronLeft size={18} /></Button>
           <h3 className="font-display font-bold text-foreground text-sm sm:text-base">Semana {weekLabel}</h3>
           <Button variant="ghost" size="icon" onClick={() => changeWeek(1)}><ChevronRight size={18} /></Button>

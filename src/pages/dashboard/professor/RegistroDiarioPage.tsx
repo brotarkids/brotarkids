@@ -6,21 +6,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { professorNavItems } from "@/config/navigation";
 
-const navItems = [
-  { label: "Minha Turma", href: "/professor", icon: <LayoutDashboard size={18} /> },
-  { label: "Registro Diário", href: "/professor/registro", icon: <ClipboardList size={18} /> },
-  { label: "Planejamento", href: "/professor/planejamento", icon: <BookOpen size={18} /> },
-  { label: "Frequência", href: "/professor/frequencia", icon: <CalendarCheck size={18} /> },
-  { label: "Mensagens", href: "/professor/mensagens", icon: <MessageSquare size={18} /> },
-];
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const moods = ["happy", "sleepy", "sad", "excited"] as const;
 const moodEmojis: Record<string, string> = { happy: "😊", sleepy: "😴", sad: "😢", excited: "😄" };
 
 const RegistroDiarioPage = () => {
   const { user } = useAuth();
-  const [myClass, setMyClass] = useState<any>(null);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [logs, setLogs] = useState<Map<string, any>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -37,22 +39,41 @@ const RegistroDiarioPage = () => {
 
   useEffect(() => {
     if (!user) return;
-    const load = async () => {
-      const { data: classData } = await supabase.from("classes").select("*").eq("teacher_id", user.id).limit(1).maybeSingle();
-      setMyClass(classData);
-      if (classData) {
-        const { data } = await supabase.from("students").select("*").eq("class_id", classData.id).eq("status", "active").order("name");
-        setStudents(data || []);
-        await loadLogs(classData.id, selectedDate);
+    const loadClasses = async () => {
+      const { data: classesData } = await supabase
+        .from("classes")
+        .select("*")
+        .eq("teacher_id", user.id)
+        .order("name");
+      
+      if (classesData && classesData.length > 0) {
+        setClasses(classesData);
+        setSelectedClassId(classesData[0].id);
       }
       setLoading(false);
     };
-    load();
+    loadClasses();
   }, [user]);
 
   useEffect(() => {
-    if (myClass) loadLogs(myClass.id, selectedDate);
-  }, [selectedDate, myClass]);
+    if (!selectedClassId) return;
+    
+    const loadStudentsAndLogs = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("students")
+        .select("*")
+        .eq("class_id", selectedClassId)
+        .eq("status", "active")
+        .order("name");
+      
+      setStudents(data || []);
+      await loadLogs(selectedClassId, selectedDate);
+      setLoading(false);
+    };
+
+    loadStudentsAndLogs();
+  }, [selectedClassId, selectedDate]);
 
   const changeDate = (days: number) => {
     const d = new Date(selectedDate + "T12:00:00");
@@ -63,7 +84,7 @@ const RegistroDiarioPage = () => {
   const toggleField = (studentId: string, field: "meals" | "nap" | "mood" | "diaper") => {
     setLogs(prev => {
       const newMap = new Map(prev);
-      const existing = newMap.get(studentId) || { student_id: studentId, class_id: myClass?.id, date: selectedDate };
+      const existing = newMap.get(studentId) || { student_id: studentId, class_id: selectedClassId, date: selectedDate };
 
       if (field === "mood") {
         const idx = moods.indexOf(existing.mood as any);
@@ -85,7 +106,7 @@ const RegistroDiarioPage = () => {
   const updateNotes = (studentId: string, notes: string) => {
     setLogs(prev => {
       const newMap = new Map(prev);
-      const existing = newMap.get(studentId) || { student_id: studentId, class_id: myClass?.id, date: selectedDate };
+      const existing = newMap.get(studentId) || { student_id: studentId, class_id: selectedClassId, date: selectedDate };
       newMap.set(studentId, { ...existing, notes, _dirty: true });
       return newMap;
     });
@@ -94,14 +115,18 @@ const RegistroDiarioPage = () => {
   const fileInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   const handlePhotoUpload = async (studentId: string, files: FileList | null) => {
-    if (!files || files.length === 0 || !myClass) return;
+    if (!files || files.length === 0 || !selectedClassId) return;
     const student = students.find(s => s.id === studentId);
     if (!student) return;
+
+    // Get school_id from classes list
+    const currentClass = classes.find(c => c.id === selectedClassId);
+    if (!currentClass) return;
 
     const uploadedUrls: string[] = [];
     for (const file of Array.from(files)) {
       const ext = file.name.split(".").pop() || "jpg";
-      const path = `${myClass.school_id}/${myClass.id}/${studentId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${currentClass.school_id}/${selectedClassId}/${studentId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from("children-media").upload(path, file, { upsert: false });
       if (error) {
         toast.error(`Erro ao enviar ${file.name}`);
@@ -114,7 +139,7 @@ const RegistroDiarioPage = () => {
     if (uploadedUrls.length > 0) {
       setLogs(prev => {
         const newMap = new Map(prev);
-        const existing = newMap.get(studentId) || { student_id: studentId, class_id: myClass?.id, date: selectedDate };
+        const existing = newMap.get(studentId) || { student_id: studentId, class_id: selectedClassId, date: selectedDate };
         const currentPhotos: string[] = existing.photos || [];
         newMap.set(studentId, { ...existing, photos: [...currentPhotos, ...uploadedUrls], _dirty: true });
         return newMap;
@@ -167,7 +192,7 @@ const RegistroDiarioPage = () => {
     if (errors > 0) toast.error(`${errors} registro(s) com erro`);
     else toast.success(`${dirtyLogs.length} registro(s) salvos!`);
 
-    if (myClass) await loadLogs(myClass.id, selectedDate);
+    if (selectedClassId) await loadLogs(selectedClassId, selectedDate);
     setSaving(false);
   };
 
@@ -179,29 +204,50 @@ const RegistroDiarioPage = () => {
 
   if (loading) {
     return (
-      <DashboardLayout title="Registro Diário" navItems={navItems} roleBadge="Professor(a)">
+      <DashboardLayout title="Registro Diário" navItems={professorNavItems} roleBadge="Professor(a)">
         <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       </DashboardLayout>
     );
   }
 
-  if (!myClass) {
+  if (!classes.length && !loading) {
     return (
-      <DashboardLayout title="Registro Diário" navItems={navItems} roleBadge="Professor(a)">
-        <p className="text-center py-12 text-muted-foreground">Nenhuma turma atribuída.</p>
+      <DashboardLayout title="Registro Diário" navItems={professorNavItems} roleBadge="Professor(a)">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Nenhuma turma atribuída a você ainda.</p>
+        </div>
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout title="Registro Diário" navItems={navItems} roleBadge="Professor(a)">
+    <DashboardLayout title="Registro Diário" navItems={professorNavItems} roleBadge="Professor(a)">
       <div className="bg-card rounded-2xl p-5 shadow-card border border-border mb-6">
-        <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => changeDate(-1)}><ChevronLeft size={18} /></Button>
-            <h3 className="font-display font-bold text-foreground capitalize text-sm sm:text-base">{dateLabel}</h3>
-            <Button variant="ghost" size="icon" onClick={() => changeDate(1)}><ChevronRight size={18} /></Button>
+        <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
+          
+          <div className="flex items-center gap-4 w-full sm:w-auto">
+            {classes.length > 1 ? (
+              <Select value={selectedClassId || ""} onValueChange={setSelectedClassId}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Selecione a turma" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <h2 className="text-lg font-bold">{classes[0]?.name}</h2>
+            )}
+            
+            <div className="flex items-center gap-2 ml-auto sm:ml-0">
+               <Button variant="ghost" size="icon" onClick={() => changeDate(-1)}><ChevronLeft size={18} /></Button>
+               <span className="font-medium capitalize text-sm">{dateLabel}</span>
+               <Button variant="ghost" size="icon" onClick={() => changeDate(1)}><ChevronRight size={18} /></Button>
+            </div>
           </div>
+
           <Button variant="default" size="sm" onClick={handleSaveAll} disabled={saving || dirtyCount === 0}>
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
             Salvar tudo {dirtyCount > 0 && `(${dirtyCount})`}

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { LayoutDashboard, BookOpen, CalendarCheck, MessageSquare, ClipboardList, Utensils, Moon, Camera, Smile, Save, Loader2, Baby, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, BookOpen, CalendarCheck, MessageSquare, ClipboardList, Utensils, Moon, Camera, Smile, Save, Loader2, Baby, ChevronLeft, ChevronRight, X, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -91,6 +91,49 @@ const RegistroDiarioPage = () => {
     });
   };
 
+  const fileInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+
+  const handlePhotoUpload = async (studentId: string, files: FileList | null) => {
+    if (!files || files.length === 0 || !myClass) return;
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+
+    const uploadedUrls: string[] = [];
+    for (const file of Array.from(files)) {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${myClass.school_id}/${myClass.id}/${studentId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("children-media").upload(path, file, { upsert: false });
+      if (error) {
+        toast.error(`Erro ao enviar ${file.name}`);
+        continue;
+      }
+      const { data: urlData } = supabase.storage.from("children-media").getPublicUrl(path);
+      uploadedUrls.push(urlData.publicUrl);
+    }
+
+    if (uploadedUrls.length > 0) {
+      setLogs(prev => {
+        const newMap = new Map(prev);
+        const existing = newMap.get(studentId) || { student_id: studentId, class_id: myClass?.id, date: selectedDate };
+        const currentPhotos: string[] = existing.photos || [];
+        newMap.set(studentId, { ...existing, photos: [...currentPhotos, ...uploadedUrls], _dirty: true });
+        return newMap;
+      });
+      toast.success(`${uploadedUrls.length} foto(s) adicionada(s)!`);
+    }
+  };
+
+  const removePhoto = (studentId: string, url: string) => {
+    setLogs(prev => {
+      const newMap = new Map(prev);
+      const existing = newMap.get(studentId);
+      if (!existing) return prev;
+      const photos = (existing.photos || []).filter((p: string) => p !== url);
+      newMap.set(studentId, { ...existing, photos, _dirty: true });
+      return newMap;
+    });
+  };
+
   const handleSaveAll = async () => {
     setSaving(true);
     const dirtyLogs = Array.from(logs.values()).filter(l => l._dirty);
@@ -104,6 +147,7 @@ const RegistroDiarioPage = () => {
         mood: data.mood || null,
         notes: data.notes || null,
         diaper: data.diaper || [],
+        photos: data.photos || [],
       };
 
       if (data.id) {
@@ -171,6 +215,7 @@ const RegistroDiarioPage = () => {
             const hasNap = log.nap && Object.keys(log.nap).length > 0;
             const hasDiaper = Array.isArray(log.diaper) && log.diaper.length > 0;
             const mood = log.mood;
+            const photos: string[] = log.photos || [];
             const isExpanded = expandedStudent === child.id;
 
             return (
@@ -193,19 +238,48 @@ const RegistroDiarioPage = () => {
                     <Baby size={18} className={hasDiaper ? "text-accent-foreground" : "text-muted-foreground"} />
                     <span className="text-xs text-muted-foreground">Fralda</span>
                   </button>
-                  <button className="flex flex-col items-center gap-1 p-3 rounded-xl bg-muted hover:bg-accent/40 transition-colors">
-                    <Camera size={18} className="text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Foto</span>
+                  <button
+                    onClick={() => {
+                      const input = fileInputRefs.current.get(child.id);
+                      if (input) input.click();
+                    }}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-colors ${photos.length > 0 ? "bg-primary/20" : "bg-muted hover:bg-accent/40"}`}
+                  >
+                    <Camera size={18} className={photos.length > 0 ? "text-primary" : "text-muted-foreground"} />
+                    <span className="text-xs text-muted-foreground">{photos.length > 0 ? `${photos.length} foto${photos.length > 1 ? "s" : ""}` : "Foto"}</span>
                   </button>
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    className="hidden"
+                    ref={el => { if (el) fileInputRefs.current.set(child.id, el); }}
+                    onChange={e => handlePhotoUpload(child.id, e.target.files)}
+                  />
                   <button onClick={() => toggleField(child.id, "mood")} className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-colors ${mood ? "bg-primary/20" : "bg-muted hover:bg-primary/15"}`}>
                     <Smile size={18} className={mood ? "text-primary" : "text-muted-foreground"} />
                     <span className="text-xs text-muted-foreground">{mood ? moodEmojis[mood] : "Humor"}</span>
                   </button>
                 </div>
 
-                {/* Expanded: notes */}
+                {/* Expanded: notes + photos */}
                 {isExpanded && (
-                  <div className="mt-3">
+                  <div className="mt-3 space-y-3">
+                    {photos.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {photos.map((url, i) => (
+                          <div key={i} className="relative group">
+                            <img src={url} alt="" className="w-20 h-20 rounded-lg object-cover border border-border" />
+                            <button
+                              onClick={() => removePhoto(child.id, url)}
+                              className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <Textarea
                       placeholder="Observações sobre a criança hoje..."
                       value={log.notes || ""}

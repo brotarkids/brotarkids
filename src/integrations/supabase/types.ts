@@ -220,6 +220,39 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          announcements: boolean
+          created_at: string | null
+          daily_logs: boolean
+          financial: boolean
+          id: string
+          messages: boolean
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          announcements?: boolean
+          created_at?: string | null
+          daily_logs?: boolean
+          financial?: boolean
+          id?: string
+          messages?: boolean
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          announcements?: boolean
+          created_at?: string | null
+          daily_logs?: boolean
+          financial?: boolean
+          id?: string
+          messages?: boolean
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

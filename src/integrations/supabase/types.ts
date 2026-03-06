@@ -223,57 +223,6 @@ export type Database = {
           },
         ]
       }
-      invites: {
-        Row: {
-          created_at: string | null
-          email: string
-          expires_at: string | null
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          school_id: string
-          status: string
-          student_id: string | null
-          token: string
-        }
-        Insert: {
-          created_at?: string | null
-          email: string
-          expires_at?: string | null
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          school_id: string
-          status?: string
-          student_id?: string | null
-          token: string
-        }
-        Update: {
-          created_at?: string | null
-          email?: string
-          expires_at?: string | null
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          school_id?: string
-          status?: string
-          student_id?: string | null
-          token?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invites_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invites_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       lesson_plans: {
         Row: {
           bncc_code: string | null
@@ -470,48 +419,38 @@ export type Database = {
       schools: {
         Row: {
           city: string | null
+          color_palette: Json | null
           created_at: string | null
           id: string
-          lgpd_accepted_at: string | null
           logo_url: string | null
-          menu_url: string | null
           name: string
-          photo_policy_accepted_at: string | null
           primary_color: string | null
-          color_palette: Json | null
           state: string | null
           status: string | null
-          teacher_student_ratio: number | null
           updated_at: string | null
         }
         Insert: {
           city?: string | null
+          color_palette?: Json | null
           created_at?: string | null
           id?: string
-          lgpd_accepted_at?: string | null
           logo_url?: string | null
-          menu_url?: string | null
           name: string
-          photo_policy_accepted_at?: string | null
           primary_color?: string | null
           state?: string | null
           status?: string | null
-          teacher_student_ratio?: number | null
           updated_at?: string | null
         }
         Update: {
           city?: string | null
+          color_palette?: Json | null
           created_at?: string | null
           id?: string
-          lgpd_accepted_at?: string | null
           logo_url?: string | null
-          menu_url?: string | null
           name?: string
-          photo_policy_accepted_at?: string | null
           primary_color?: string | null
           state?: string | null
           status?: string | null
-          teacher_student_ratio?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -593,12 +532,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      accept_invite: {
-        Args: {
-          token_input: string
-        }
-        Returns: void
-      }
       get_all_users_with_email: {
         Args: never
         Returns: {
@@ -610,30 +543,14 @@ export type Database = {
         }[]
       }
       get_student_public_info: {
-        Args: {
-          student_id_input: string
-        }
+        Args: { student_id_input: string }
         Returns: {
           class_id: string
           class_name: string
           id: string
           name: string
-          photo_url: string | null
+          photo_url: string
         }[]
-      }
-      get_invite_by_token: {
-        Args: {
-          token_input: string
-        }
-        Returns: {
-          email: string
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          school_id: string
-          school_name: string
-          student_id: string | null
-          token: string
-        }
       }
       get_user_role: {
         Args: { _user_id: string }

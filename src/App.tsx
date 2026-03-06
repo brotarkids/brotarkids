@@ -45,6 +45,7 @@ import CalendarioPage from "./pages/dashboard/responsavel/CalendarioPage";
 import PagamentosPage from "./pages/dashboard/responsavel/PagamentosPage";
 import MensagensPage from "./pages/dashboard/responsavel/MensagensPage";
 import PerfilCriancaPage from "./pages/dashboard/responsavel/PerfilCriancaPage";
+import NotificacoesConfigPage from "./pages/dashboard/responsavel/NotificacoesConfigPage";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +96,7 @@ const App = () => (
               <Route path="/responsavel/pagamentos" element={<ProtectedRoute allowedRoles={["superadmin", "admin", "professor", "responsavel"]}><PagamentosPage /></ProtectedRoute>} />
               <Route path="/responsavel/mensagens" element={<ProtectedRoute allowedRoles={["superadmin", "admin", "professor", "responsavel"]}><MensagensPage /></ProtectedRoute>} />
               <Route path="/responsavel/perfil" element={<ProtectedRoute allowedRoles={["superadmin", "admin", "professor", "responsavel"]}><PerfilCriancaPage /></ProtectedRoute>} />
+              <Route path="/responsavel/notificacoes" element={<ProtectedRoute allowedRoles={["superadmin", "admin", "professor", "responsavel"]}><NotificacoesConfigPage /></ProtectedRoute>} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>

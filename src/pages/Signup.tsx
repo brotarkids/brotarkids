@@ -83,7 +83,7 @@ const Signup = () => {
     if (inviteData && authData.user) {
       try {
         // Use RPC to accept invite securely
-        const { error: rpcError } = await supabase.rpc('accept_invite', { 
+        const { error: rpcError } = await supabase.rpc('accept_invite' as any, { 
             token_input: token 
         });
 

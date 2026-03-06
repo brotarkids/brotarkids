@@ -149,10 +149,10 @@ const EquipePage = () => {
 
   const handleCancelInvite = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('invites')
+      const { error } = await (supabase
+        .from('invites' as any)
         .delete()
-        .eq('id', id);
+        .eq('id', id) as any);
       
       if (error) throw error;
       toast.success("Convite cancelado.");

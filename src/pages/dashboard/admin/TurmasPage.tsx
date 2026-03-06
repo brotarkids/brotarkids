@@ -103,7 +103,7 @@ const TurmasPage = () => {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       setIsCreateOpen(false);
       setEditingClass(null);
-      setNewClass({ name: "", age_range: "", period: "", capacity: "20" });
+      setNewClass({ name: "", age_range: "", period: "", capacity: "20", teacher_id: "" });
       toast({ title: "Sucesso", description: "Turma salva com sucesso." });
     },
     onError: (error) => {

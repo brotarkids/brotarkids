@@ -89,6 +89,9 @@ const ResponsavelDashboard = () => {
     if (log.mood) {
       items.push({ time, icon: log.mood === "happy" ? "😊" : log.mood === "sad" ? "😢" : "😄", text: `Humor: ${moodLabels[log.mood] || log.mood}` });
     }
+    if (log.photos && log.photos.length > 0) {
+      items.push({ time, icon: "📸", text: `${log.photos.length} foto(s)`, photos: log.photos });
+    }
     if (log.notes) {
       items.push({ time, icon: "📝", text: log.notes });
     }

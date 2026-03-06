@@ -223,6 +223,57 @@ export type Database = {
           },
         ]
       }
+      invites: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          role: string
+          school_id: string
+          status: string
+          student_id: string | null
+          token: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          role?: string
+          school_id: string
+          status?: string
+          student_id?: string | null
+          token: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          role?: string
+          school_id?: string
+          status?: string
+          student_id?: string | null
+          token?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invites_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invites_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_plans: {
         Row: {
           bncc_code: string | null
@@ -421,36 +472,60 @@ export type Database = {
           city: string | null
           color_palette: Json | null
           created_at: string | null
+          director_name: string | null
+          email: string | null
           id: string
+          lgpd_accepted_at: string | null
           logo_url: string | null
+          menu_url: string | null
           name: string
+          phone: string | null
+          photo_policy_accepted_at: string | null
+          plan_type: string | null
           primary_color: string | null
           state: string | null
           status: string | null
+          teacher_student_ratio: number | null
           updated_at: string | null
         }
         Insert: {
           city?: string | null
           color_palette?: Json | null
           created_at?: string | null
+          director_name?: string | null
+          email?: string | null
           id?: string
+          lgpd_accepted_at?: string | null
           logo_url?: string | null
+          menu_url?: string | null
           name: string
+          phone?: string | null
+          photo_policy_accepted_at?: string | null
+          plan_type?: string | null
           primary_color?: string | null
           state?: string | null
           status?: string | null
+          teacher_student_ratio?: number | null
           updated_at?: string | null
         }
         Update: {
           city?: string | null
           color_palette?: Json | null
           created_at?: string | null
+          director_name?: string | null
+          email?: string | null
           id?: string
+          lgpd_accepted_at?: string | null
           logo_url?: string | null
+          menu_url?: string | null
           name?: string
+          phone?: string | null
+          photo_policy_accepted_at?: string | null
+          plan_type?: string | null
           primary_color?: string | null
           state?: string | null
           status?: string | null
+          teacher_student_ratio?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -532,6 +607,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invite: { Args: { token_input: string }; Returns: undefined }
       get_all_users_with_email: {
         Args: never
         Returns: {
@@ -542,6 +618,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_invite_by_token: { Args: { token_input: string }; Returns: Json }
       get_student_public_info: {
         Args: { student_id_input: string }
         Returns: {

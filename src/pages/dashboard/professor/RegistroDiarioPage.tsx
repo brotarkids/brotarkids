@@ -261,9 +261,24 @@ const RegistroDiarioPage = () => {
                   </button>
                 </div>
 
-                {/* Expanded: notes */}
+                {/* Expanded: notes + photos */}
                 {isExpanded && (
-                  <div className="mt-3">
+                  <div className="mt-3 space-y-3">
+                    {photos.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {photos.map((url, i) => (
+                          <div key={i} className="relative group">
+                            <img src={url} alt="" className="w-20 h-20 rounded-lg object-cover border border-border" />
+                            <button
+                              onClick={() => removePhoto(child.id, url)}
+                              className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <Textarea
                       placeholder="Observações sobre a criança hoje..."
                       value={log.notes || ""}

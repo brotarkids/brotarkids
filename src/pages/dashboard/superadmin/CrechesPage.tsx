@@ -65,7 +65,7 @@ const CrechesPage = () => {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      setSchools(data || []);
+      setSchools((data || []) as any);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar escolas",

@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { LayoutDashboard, BookOpen, CalendarCheck, MessageSquare, ClipboardList, Send, Loader2 } from "lucide-react";
+import { LayoutDashboard, BookOpen, CalendarCheck, MessageSquare, ClipboardList, Send, Loader2, Plus, UserPlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -23,59 +26,104 @@ const MensagensProfPage = () => {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [newConvOpen, setNewConvOpen] = useState(false);
+  const [parents, setParents] = useState<any[]>([]);
+  const [selectedParent, setSelectedParent] = useState("");
 
-  useEffect(() => {
+  const loadMessages = async () => {
     if (!user) return;
-    const load = async () => {
-      const { data } = await supabase
-        .from("messages")
-        .select("*")
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-        .order("created_at", { ascending: false })
-        .limit(200);
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .order("created_at", { ascending: false })
+      .limit(500);
 
-      const msgs = data || [];
-      setMessages(msgs);
+    const msgs = data || [];
+    setMessages(msgs);
 
-      // Build conversation list
-      const convMap = new Map<string, { userId: string; lastMsg: string; time: string; unread: boolean }>();
-      msgs.forEach(m => {
-        const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
-        if (!otherId) return;
-        if (!convMap.has(otherId)) {
-          convMap.set(otherId, {
-            userId: otherId,
-            lastMsg: m.content,
-            time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-            unread: m.receiver_id === user.id && !m.read_at,
-          });
-        }
-      });
-
-      // Fetch profiles for conversation partners
-      const userIds = Array.from(convMap.keys());
-      if (userIds.length > 0) {
-        const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
-        const profileMap = new Map<string, string>();
-        (profiles || []).forEach(p => profileMap.set(p.user_id, p.full_name || "Sem nome"));
-
-        const convList = Array.from(convMap.values()).map(c => ({
-          ...c,
-          name: profileMap.get(c.userId) || "Usuário",
-        }));
-        setConversations(convList);
-        if (convList.length > 0 && !selectedUserId) setSelectedUserId(convList[0].userId);
+    const convMap = new Map<string, { userId: string; lastMsg: string; time: string; unread: boolean; unreadCount: number }>();
+    msgs.forEach(m => {
+      const otherId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
+      if (!otherId) return;
+      if (!convMap.has(otherId)) {
+        convMap.set(otherId, {
+          userId: otherId,
+          lastMsg: m.content,
+          time: new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+          unread: m.receiver_id === user.id && !m.read_at,
+          unreadCount: 0,
+        });
       }
-      setLoading(false);
-    };
-    load();
-  }, [user]);
+      if (m.receiver_id === user.id && !m.read_at) {
+        const entry = convMap.get(otherId)!;
+        entry.unreadCount++;
+      }
+    });
+
+    const userIds = Array.from(convMap.keys());
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
+      const profileMap = new Map<string, string>();
+      (profiles || []).forEach(p => profileMap.set(p.user_id, p.full_name || "Sem nome"));
+
+      const convList = Array.from(convMap.values()).map(c => ({
+        ...c,
+        name: profileMap.get(c.userId) || "Usuário",
+      }));
+      setConversations(convList);
+      if (convList.length > 0 && !selectedUserId) setSelectedUserId(convList[0].userId);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { loadMessages(); }, [user]);
+
+  // Load parents for new conversation
+  const loadParents = async () => {
+    if (!user) return;
+    const { data: classData } = await supabase.from("classes").select("id").eq("teacher_id", user.id).limit(1).maybeSingle();
+    if (!classData) return;
+    const { data: studentsData } = await supabase.from("students").select("parent_id, name").eq("class_id", classData.id).eq("status", "active");
+    const parentIds = (studentsData || []).map(s => s.parent_id).filter(Boolean);
+    if (parentIds.length === 0) return;
+    const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", parentIds);
+    const parentList = (profiles || []).map(p => ({
+      userId: p.user_id,
+      name: p.full_name || "Responsável",
+      childName: studentsData?.find(s => s.parent_id === p.user_id)?.name || "",
+    }));
+    setParents(parentList);
+  };
+
+  // Mark messages as read when selecting a conversation
+  useEffect(() => {
+    if (!selectedUserId || !user) return;
+    const unread = messages.filter(m => m.sender_id === selectedUserId && m.receiver_id === user.id && !m.read_at);
+    if (unread.length > 0) {
+      supabase.from("messages").update({ read_at: new Date().toISOString() })
+        .in("id", unread.map(m => m.id))
+        .then(() => {
+          setMessages(prev => prev.map(m =>
+            unread.some(u => u.id === m.id) ? { ...m, read_at: new Date().toISOString() } : m
+          ));
+          setConversations(prev => prev.map(c =>
+            c.userId === selectedUserId ? { ...c, unread: false, unreadCount: 0 } : c
+          ));
+        });
+    }
+  }, [selectedUserId]);
 
   const selectedMessages = messages
     .filter(m => (m.sender_id === selectedUserId && m.receiver_id === user?.id) || (m.sender_id === user?.id && m.receiver_id === selectedUserId))
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
   const selectedName = conversations.find(c => c.userId === selectedUserId)?.name || "";
+
+  const filteredConversations = searchTerm
+    ? conversations.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    : conversations;
 
   const handleSend = async () => {
     if (!newMessage.trim() || !selectedUserId || !user) return;
@@ -94,6 +142,19 @@ const MensagensProfPage = () => {
     setSending(false);
   };
 
+  const handleNewConversation = () => {
+    if (!selectedParent) return;
+    setSelectedUserId(selectedParent);
+    // Add to conversations if not exists
+    const existing = conversations.find(c => c.userId === selectedParent);
+    if (!existing) {
+      const parent = parents.find(p => p.userId === selectedParent);
+      setConversations(prev => [{ userId: selectedParent, name: parent?.name || "Responsável", lastMsg: "", time: "", unread: false, unreadCount: 0 }, ...prev]);
+    }
+    setNewConvOpen(false);
+    setSelectedParent("");
+  };
+
   if (loading) {
     return (
       <DashboardLayout title="Mensagens" navItems={navItems} roleBadge="Professor(a)">
@@ -105,14 +166,18 @@ const MensagensProfPage = () => {
   return (
     <DashboardLayout title="Mensagens" navItems={navItems} roleBadge="Professor(a)">
       <div className="grid lg:grid-cols-3 gap-6 h-[calc(100vh-10rem)]">
-        <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden">
-          <div className="p-4 border-b border-border">
-            <Input placeholder="Buscar conversa..." className="h-9" />
+        {/* Sidebar */}
+        <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-border space-y-2">
+            <Input placeholder="Buscar conversa..." className="h-9" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            <Button variant="outline" size="sm" className="w-full" onClick={() => { setNewConvOpen(true); loadParents(); }}>
+              <UserPlus size={14} /> Nova conversa
+            </Button>
           </div>
-          <div className="divide-y divide-border">
-            {conversations.length === 0 ? (
+          <div className="divide-y divide-border overflow-auto flex-1">
+            {filteredConversations.length === 0 ? (
               <p className="p-4 text-sm text-muted-foreground">Nenhuma conversa.</p>
-            ) : conversations.map((c) => (
+            ) : filteredConversations.map((c) => (
               <button key={c.userId} onClick={() => setSelectedUserId(c.userId)} className={`w-full text-left p-4 hover:bg-muted/50 transition-colors ${selectedUserId === c.userId ? "bg-muted/50" : ""}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-medium text-foreground">{c.name}</span>
@@ -120,32 +185,75 @@ const MensagensProfPage = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-muted-foreground truncate flex-1">{c.lastMsg}</p>
-                  {c.unread && <span className="w-2 h-2 bg-primary rounded-full shrink-0" />}
+                  {c.unreadCount > 0 && (
+                    <span className="min-w-[18px] h-[18px] flex items-center justify-center bg-primary text-primary-foreground text-[10px] font-bold rounded-full px-1">
+                      {c.unreadCount}
+                    </span>
+                  )}
                 </div>
               </button>
             ))}
           </div>
         </div>
 
+        {/* Chat area */}
         <div className="lg:col-span-2 bg-card rounded-2xl shadow-card border border-border flex flex-col">
           <div className="p-4 border-b border-border">
             <span className="font-display font-bold text-foreground">{selectedName || "Selecione uma conversa"}</span>
           </div>
           <div className="flex-1 p-4 space-y-3 overflow-auto">
+            {selectedMessages.length === 0 && selectedUserId && (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhuma mensagem ainda. Envie a primeira!</p>
+            )}
             {selectedMessages.map((m, i) => (
               <div key={i} className={`flex ${m.sender_id === user?.id ? "justify-end" : "justify-start"}`}>
                 <div className={`rounded-2xl px-4 py-2 max-w-[75%] text-sm text-foreground ${m.sender_id === user?.id ? "bg-primary/15 rounded-br-md" : "bg-muted rounded-bl-md"}`}>
                   {m.content}
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-          <div className="p-4 border-t border-border flex gap-2">
-            <Input placeholder="Escrever mensagem..." className="flex-1" value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSend()} />
-            <Button variant="default" size="icon" onClick={handleSend} disabled={sending}><Send size={16} /></Button>
-          </div>
+          {selectedUserId && (
+            <div className="p-4 border-t border-border flex gap-2">
+              <Input placeholder="Escrever mensagem..." className="flex-1" value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSend()} />
+              <Button variant="default" size="icon" onClick={handleSend} disabled={sending || !newMessage.trim()}>
+                <Send size={16} />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* New conversation dialog */}
+      <Dialog open={newConvOpen} onOpenChange={setNewConvOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nova Conversa</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Label>Selecione o responsável</Label>
+            {parents.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum responsável encontrado na turma.</p>
+            ) : (
+              <Select value={selectedParent} onValueChange={setSelectedParent}>
+                <SelectTrigger><SelectValue placeholder="Escolha um responsável" /></SelectTrigger>
+                <SelectContent>
+                  {parents.map(p => (
+                    <SelectItem key={p.userId} value={p.userId}>
+                      {p.name} {p.childName ? `(responsável de ${p.childName})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewConvOpen(false)}>Cancelar</Button>
+            <Button onClick={handleNewConversation} disabled={!selectedParent}>Iniciar conversa</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

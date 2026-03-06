@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance: {
+        Row: {
+          class_id: string
+          created_at: string | null
+          date: string
+          id: string
+          notes: string | null
+          present: boolean
+          recorded_by: string
+          student_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          class_id: string
+          created_at?: string | null
+          date?: string
+          id?: string
+          notes?: string | null
+          present?: boolean
+          recorded_by: string
+          student_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          class_id?: string
+          created_at?: string | null
+          date?: string
+          id?: string
+          notes?: string | null
+          present?: boolean
+          recorded_by?: string
+          student_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           age_range: string | null
@@ -168,6 +219,53 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_plans: {
+        Row: {
+          bncc_code: string | null
+          class_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          planned_date: string
+          status: string
+          teacher_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          bncc_code?: string | null
+          class_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          planned_date: string
+          status?: string
+          teacher_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          bncc_code?: string | null
+          class_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          planned_date?: string
+          status?: string
+          teacher_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_plans_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
             referencedColumns: ["id"]
           },
         ]

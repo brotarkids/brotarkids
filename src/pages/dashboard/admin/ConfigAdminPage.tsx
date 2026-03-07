@@ -81,13 +81,13 @@ const ConfigAdminPage = () => {
           logo_url: logoUrl,
           color_palette: palette as unknown as any,
           primary_color: palette?.primary,
-          address,
-          cnpj,
           phone,
           email,
+          address,
+          cnpj,
           working_hours: workingHours,
           notification_settings: notifications
-        })
+        } as any)
         .eq("id", profile.school_id);
 
       if (error) throw error;

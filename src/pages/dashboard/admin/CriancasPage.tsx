@@ -180,8 +180,8 @@ const CriancasPage = () => {
   };
 
   const handleSaveStudent = async () => {
-    if (!profile?.school_id) {
-      toast.error("Você precisa estar vinculado a uma escola para matricular alunos.");
+    if (!effectiveSchoolId) {
+      toast.error("Selecione uma escola para matricular alunos.");
       return;
     }
     if (!formData.name || !formData.birth_date) {

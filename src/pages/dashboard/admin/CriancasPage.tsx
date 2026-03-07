@@ -151,7 +151,7 @@ const CriancasPage = () => {
 
   useEffect(() => {
     if (profile) loadData();
-  }, [profile, isProfessor]);
+  }, [profile, isProfessor, effectiveSchoolId]);
 
   const handleOpenDialog = (student?: any) => {
     setIsInviting(false);

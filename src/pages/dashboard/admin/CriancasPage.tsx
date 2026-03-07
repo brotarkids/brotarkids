@@ -45,13 +45,20 @@ const CriancasPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingStudent, setEditingStudent] = useState<any>(null);
+  const [schools, setSchools] = useState<any[]>([]);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
+
+  const isSuperadmin = role === 'superadmin';
 
   // Robust check for professor context based on route or profile
   const isProfessorRoute = location.pathname.includes('/professor');
   const isProfessor = role === 'professor' || isProfessorRoute;
   
   const navItems = isProfessor ? professorNavItems : adminNavItems;
-  const roleBadge = isProfessor ? "Professor(a)" : "Admin";
+  const roleBadge = isProfessor ? "Professor(a)" : (isSuperadmin ? "Superadmin" : "Admin");
+
+  // Effective school_id: from profile or superadmin selection
+  const effectiveSchoolId = profile?.school_id || selectedSchoolId || null;
 
   // Form state
   const [formData, setFormData] = useState({
@@ -68,7 +75,15 @@ const CriancasPage = () => {
   const [isInviting, setIsInviting] = useState(false);
 
   const loadData = async () => {
-    if (!profile?.school_id) return;
+    if (!effectiveSchoolId) {
+      // Superadmin without school selected: load schools list
+      if (isSuperadmin) {
+        const { data: schoolsData } = await supabase.from("schools").select("id, name").order("name");
+        setSchools(schoolsData || []);
+        setLoading(false);
+      }
+      return;
+    }
     
     setLoading(true);
     
@@ -76,7 +91,7 @@ const CriancasPage = () => {
     let classesQuery = supabase
       .from("classes")
       .select("id, name, teacher_id")
-      .eq("school_id", profile.school_id)
+      .eq("school_id", effectiveSchoolId)
       .order("name");
       
     if (isProfessor) {
@@ -96,7 +111,7 @@ const CriancasPage = () => {
     let studentsQuery = supabase
       .from("students")
       .select("*, classes(name), profiles:parent_id(full_name)")
-      .eq("school_id", profile.school_id)
+      .eq("school_id", effectiveSchoolId)
       .order("name");
 
     if (isProfessor && classesData) {
@@ -122,7 +137,7 @@ const CriancasPage = () => {
     const { data: profilesData, error: profilesError } = await supabase
       .from("profiles")
       .select("user_id, full_name, school_id")
-      .eq("school_id", profile.school_id)
+      .eq("school_id", effectiveSchoolId)
       .order("full_name");
 
     if (profilesError) {
@@ -136,7 +151,7 @@ const CriancasPage = () => {
 
   useEffect(() => {
     if (profile) loadData();
-  }, [profile, isProfessor]);
+  }, [profile, isProfessor, effectiveSchoolId]);
 
   const handleOpenDialog = (student?: any) => {
     setIsInviting(false);
@@ -165,8 +180,8 @@ const CriancasPage = () => {
   };
 
   const handleSaveStudent = async () => {
-    if (!profile?.school_id) {
-      toast.error("Você precisa estar vinculado a uma escola para matricular alunos.");
+    if (!effectiveSchoolId) {
+      toast.error("Selecione uma escola para matricular alunos.");
       return;
     }
     if (!formData.name || !formData.birth_date) {
@@ -181,7 +196,7 @@ const CriancasPage = () => {
     let inviteSent = false;
 
     const payload = {
-      school_id: profile.school_id,
+      school_id: effectiveSchoolId,
       name: formData.name,
       birth_date: formData.birth_date,
       class_id: (formData.class_id && formData.class_id !== "_empty") ? formData.class_id : null,
@@ -207,7 +222,7 @@ const CriancasPage = () => {
       try {
         const token = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
         const { error: inviteError } = await (supabase.from("invites" as any).insert([{
-            school_id: profile.school_id,
+            school_id: effectiveSchoolId,
             email: formData.parent_email,
             role: 'responsavel',
             token: token,
@@ -267,6 +282,22 @@ const CriancasPage = () => {
 
   return (
     <DashboardLayout title="Gerenciar Alunos" navItems={navItems} roleBadge={roleBadge}>
+      {/* School selector for superadmin without school_id */}
+      {isSuperadmin && !profile?.school_id && (
+        <div className="mb-4 flex items-center gap-3">
+          <Label className="whitespace-nowrap font-medium">Escola:</Label>
+          <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
+            <SelectTrigger className="w-full sm:w-64">
+              <SelectValue placeholder="Selecione uma escola" />
+            </SelectTrigger>
+            <SelectContent>
+              {schools.map((s: any) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />

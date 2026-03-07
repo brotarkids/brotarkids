@@ -157,10 +157,11 @@ const UsuariosPage = () => {
 
     try {
       // Update profile (school_id and full_name)
+      const schoolIdValue = (selectedSchoolId && selectedSchoolId !== "_empty") ? selectedSchoolId : null;
       const { error: profileError } = await supabase
         .from("profiles")
         .update({ 
-          school_id: selectedSchoolId || null,
+          school_id: schoolIdValue,
           full_name: selectedName
         })
         .eq("user_id", selectedUser.user_id);

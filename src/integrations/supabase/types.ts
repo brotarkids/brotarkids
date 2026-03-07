@@ -489,6 +489,7 @@ export type Database = {
           photo_policy_accepted_at: string | null
           plan_type: string | null
           primary_color: string | null
+          slug: string | null
           state: string | null
           status: string | null
           teacher_student_ratio: number | null
@@ -513,6 +514,7 @@ export type Database = {
           photo_policy_accepted_at?: string | null
           plan_type?: string | null
           primary_color?: string | null
+          slug?: string | null
           state?: string | null
           status?: string | null
           teacher_student_ratio?: number | null
@@ -537,6 +539,7 @@ export type Database = {
           photo_policy_accepted_at?: string | null
           plan_type?: string | null
           primary_color?: string | null
+          slug?: string | null
           state?: string | null
           status?: string | null
           teacher_student_ratio?: number | null

@@ -282,6 +282,22 @@ const CriancasPage = () => {
 
   return (
     <DashboardLayout title="Gerenciar Alunos" navItems={navItems} roleBadge={roleBadge}>
+      {/* School selector for superadmin without school_id */}
+      {isSuperadmin && !profile?.school_id && (
+        <div className="mb-4 flex items-center gap-3">
+          <Label className="whitespace-nowrap font-medium">Escola:</Label>
+          <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
+            <SelectTrigger className="w-full sm:w-64">
+              <SelectValue placeholder="Selecione uma escola" />
+            </SelectTrigger>
+            <SelectContent>
+              {schools.map((s: any) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />

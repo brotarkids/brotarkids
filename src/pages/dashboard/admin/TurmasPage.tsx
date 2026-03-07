@@ -283,7 +283,7 @@ const TurmasPage = () => {
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Escola</span><span className="text-foreground">{t.schools?.name || "N/A"}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Professor(a)</span><span className="text-foreground">{t.teacher_id ? "Definido" : "Não atribuído"}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Professor(a)</span><span className="text-foreground">{t.teacher_name || "Não atribuído"}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Faixa etária</span><span className="text-foreground">{t.age_range || "N/A"}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Capacidade</span><span className="text-foreground font-medium">{t.capacity}</span></div>
               </div>

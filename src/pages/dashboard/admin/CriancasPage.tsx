@@ -45,13 +45,20 @@ const CriancasPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingStudent, setEditingStudent] = useState<any>(null);
+  const [schools, setSchools] = useState<any[]>([]);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
+
+  const isSuperadmin = role === 'superadmin';
 
   // Robust check for professor context based on route or profile
   const isProfessorRoute = location.pathname.includes('/professor');
   const isProfessor = role === 'professor' || isProfessorRoute;
   
   const navItems = isProfessor ? professorNavItems : adminNavItems;
-  const roleBadge = isProfessor ? "Professor(a)" : "Admin";
+  const roleBadge = isProfessor ? "Professor(a)" : (isSuperadmin ? "Superadmin" : "Admin");
+
+  // Effective school_id: from profile or superadmin selection
+  const effectiveSchoolId = profile?.school_id || selectedSchoolId || null;
 
   // Form state
   const [formData, setFormData] = useState({

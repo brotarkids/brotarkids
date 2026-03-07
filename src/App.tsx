@@ -16,6 +16,7 @@ import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import CheckInPage from "./pages/public/CheckInPage";
+import SchoolPublicPage from "./pages/public/SchoolPublicPage";
 
 // SuperAdmin
 import SuperAdminDashboard from "./pages/dashboard/SuperAdminDashboard";

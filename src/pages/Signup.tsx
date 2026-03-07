@@ -89,7 +89,7 @@ const Signup = () => {
 
         if (rpcError) throw rpcError;
 
-        toast.success("Conta criada e convite aceito com sucesso!");
+      toast.success("Conta criada e convite aceito com sucesso!");
       } catch (err: any) {
         console.error("Error processing invite:", err);
         toast.error("Erro ao processar convite: " + err.message);
@@ -108,6 +108,20 @@ const Signup = () => {
         .eq("user_id", authData.user.id);
         
       toast.success("Conta criada com sucesso! Verifique seu email.");
+    }
+
+    // Send notification email to admin
+    try {
+      await supabase.functions.invoke('notify-signup', {
+        body: {
+          name,
+          email,
+          role: inviteData?.role || null,
+          school_name: inviteData?.schools?.name || null,
+        },
+      });
+    } catch (err) {
+      console.error("Error sending signup notification:", err);
     }
     
     setLoading(false);

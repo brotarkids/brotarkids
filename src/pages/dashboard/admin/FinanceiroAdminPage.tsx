@@ -80,7 +80,6 @@ const FinanceiroAdminPage = () => {
         description,
         amount: parseFloat(amount),
         due_date: dueDate,
-        type,
         status: "pending"
       }]);
 

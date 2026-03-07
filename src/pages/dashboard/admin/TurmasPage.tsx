@@ -36,23 +36,31 @@ const TurmasPage = () => {
   const { data: classes, isLoading } = useQuery({
     queryKey: ["classes", profile?.school_id],
     queryFn: async () => {
-      let query = supabase.from("classes").select(`
-        *,
-        schools (name),
-        profiles:teacher_id (full_name)
-      `);
+      let query = supabase.from("classes").select("*, schools(name)");
 
       if (profile?.school_id) {
         query = query.eq("school_id", profile.school_id);
-      } else {
-        query = query.order("name");
       }
+      query = query.order("name");
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+
+      // Fetch teacher names separately
+      if (data && data.length > 0) {
+        const teacherIds = [...new Set(data.filter(c => c.teacher_id).map(c => c.teacher_id))];
+        if (teacherIds.length > 0) {
+          const { data: teacherProfiles } = await supabase
+            .from("profiles")
+            .select("user_id, full_name")
+            .in("user_id", teacherIds);
+          const teacherMap = Object.fromEntries((teacherProfiles || []).map(t => [t.user_id, t.full_name]));
+          return data.map(c => ({ ...c, teacher_name: c.teacher_id ? teacherMap[c.teacher_id] || null : null }));
+        }
+      }
+      return (data || []).map(c => ({ ...c, teacher_name: null }));
     },
-    enabled: true,
+    enabled: !!profile,
   });
 
     // Fetch teachers

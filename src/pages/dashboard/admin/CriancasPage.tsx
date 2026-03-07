@@ -196,7 +196,7 @@ const CriancasPage = () => {
     let inviteSent = false;
 
     const payload = {
-      school_id: profile.school_id,
+      school_id: effectiveSchoolId,
       name: formData.name,
       birth_date: formData.birth_date,
       class_id: (formData.class_id && formData.class_id !== "_empty") ? formData.class_id : null,

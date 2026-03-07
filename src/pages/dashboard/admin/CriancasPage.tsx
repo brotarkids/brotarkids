@@ -222,7 +222,7 @@ const CriancasPage = () => {
       try {
         const token = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
         const { error: inviteError } = await (supabase.from("invites" as any).insert([{
-            school_id: profile.school_id,
+            school_id: effectiveSchoolId,
             email: formData.parent_email,
             role: 'responsavel',
             token: token,

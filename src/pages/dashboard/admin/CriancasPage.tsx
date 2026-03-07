@@ -111,7 +111,7 @@ const CriancasPage = () => {
     let studentsQuery = supabase
       .from("students")
       .select("*, classes(name), profiles:parent_id(full_name)")
-      .eq("school_id", profile.school_id)
+      .eq("school_id", effectiveSchoolId)
       .order("name");
 
     if (isProfessor && classesData) {

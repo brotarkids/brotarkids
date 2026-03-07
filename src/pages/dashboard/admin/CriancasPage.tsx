@@ -110,7 +110,7 @@ const CriancasPage = () => {
     // Load students
     let studentsQuery = supabase
       .from("students")
-      .select("*, classes(name), profiles:parent_id(full_name)")
+      .select("*, classes(name)")
       .eq("school_id", effectiveSchoolId)
       .order("name");
 

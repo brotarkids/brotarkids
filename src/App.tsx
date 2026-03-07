@@ -16,6 +16,7 @@ import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import CheckInPage from "./pages/public/CheckInPage";
+import SchoolPublicPage from "./pages/public/SchoolPublicPage";
 
 // SuperAdmin
 import SuperAdminDashboard from "./pages/dashboard/SuperAdminDashboard";
@@ -72,6 +73,7 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/checkin" element={<CheckInPage />} />
+              <Route path="/escola/:slug" element={<SchoolPublicPage />} />
 
               {/* SuperAdmin */}
               <Route path="/superadmin" element={<ProtectedRoute allowedRoles={["superadmin"]}><SuperAdminDashboard /></ProtectedRoute>} />

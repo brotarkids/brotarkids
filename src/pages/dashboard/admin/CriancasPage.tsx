@@ -137,7 +137,7 @@ const CriancasPage = () => {
     const { data: profilesData, error: profilesError } = await supabase
       .from("profiles")
       .select("user_id, full_name, school_id")
-      .eq("school_id", profile.school_id)
+      .eq("school_id", effectiveSchoolId)
       .order("full_name");
 
     if (profilesError) {

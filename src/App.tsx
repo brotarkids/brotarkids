@@ -73,6 +73,7 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/checkin" element={<CheckInPage />} />
+              <Route path="/escola/:slug" element={<SchoolPublicPage />} />
 
               {/* SuperAdmin */}
               <Route path="/superadmin" element={<ProtectedRoute allowedRoles={["superadmin"]}><SuperAdminDashboard /></ProtectedRoute>} />

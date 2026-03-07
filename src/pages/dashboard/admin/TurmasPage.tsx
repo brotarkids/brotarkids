@@ -55,17 +55,44 @@ const TurmasPage = () => {
     enabled: true,
   });
 
-  // Fetch teachers
-  useEffect(() => {
+    // Fetch teachers
+    useEffect(() => {
     const fetchTeachers = async () => {
       if (!profile?.school_id) return;
       try {
-        const { data: users, error } = await supabase.rpc('get_all_users_with_email');
-        if (error) throw error;
-        // Filter for this school and role 'professor'
-        const schoolTeachers = users.filter((u: any) => 
-          u.school_id === profile.school_id && u.role === 'professor'
-        );
+        // Fetch profiles in the school
+        const { data: schoolProfiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .eq('school_id', profile.school_id);
+        
+        if (profilesError) throw profilesError;
+        if (!schoolProfiles || schoolProfiles.length === 0) {
+          setTeachers([]);
+          return;
+        }
+
+        const userIds = schoolProfiles.map(p => p.user_id);
+
+        // Fetch roles for these users to filter professors
+        const { data: rolesData, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('user_id', userIds)
+          .eq('role', 'professor');
+
+        if (rolesError) throw rolesError;
+
+        // Filter profiles that have the professor role
+        const professorIds = new Set((rolesData || []).map(r => r.user_id));
+        const schoolTeachers = schoolProfiles
+          .filter(p => professorIds.has(p.user_id))
+          .map(p => ({
+             ...p,
+             role: 'professor',
+             school_id: profile.school_id
+          }));
+
         setTeachers(schoolTeachers || []);
       } catch (err) {
         console.error("Error fetching teachers:", err);

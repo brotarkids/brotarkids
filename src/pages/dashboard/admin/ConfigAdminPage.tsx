@@ -5,12 +5,16 @@ import { LayoutDashboard, Users, GraduationCap, CreditCard, FileText, Settings, 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { LogoUpload } from "@/components/whitelabel/LogoUpload";
 import { ColorPalette, applyTheme } from "@/lib/theme-utils";
 import { useTheme } from "@/components/whitelabel/ThemeContext";
+import { ThemeEditor } from "@/components/whitelabel/ThemeEditor";
 
 const navItems = [
   { label: "Visão Geral", href: "/admin", icon: <LayoutDashboard size={18} /> },
@@ -31,6 +35,17 @@ const ConfigAdminPage = () => {
   const [palette, setPalette] = useState<ColorPalette | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // School Details
+  const [schoolName, setSchoolName] = useState("");
+  const [address, setAddress] = useState("");
+  const [cnpj, setCnpj] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+
+  // Hours & Notifications
+  const [workingHours, setWorkingHours] = useState<any>({ open: "07:00", close: "18:00" });
+  const [notifications, setNotifications] = useState<any>({ parents: true, messages: true });
+
   useEffect(() => {
     if (profile?.schools) {
       // Initialize with existing data
@@ -44,10 +59,18 @@ const ConfigAdminPage = () => {
         // Partial palette from legacy
         setPalette({ ...palette!, primary: school.primary_color });
       }
+
+      setSchoolName(school.name || "");
+      setAddress(school.address || "");
+      setCnpj(school.cnpj || "");
+      setPhone(school.phone || "");
+      setEmail(school.email || "");
+      if (school.working_hours) setWorkingHours(school.working_hours);
+      if (school.notification_settings) setNotifications(school.notification_settings);
     }
   }, [profile]);
 
-  const handleSaveTheme = async () => {
+  const handleSave = async () => {
     if (!profile?.school_id) return;
     
     try {
@@ -57,15 +80,21 @@ const ConfigAdminPage = () => {
         .update({
           logo_url: logoUrl,
           color_palette: palette as unknown as any,
-          primary_color: palette?.primary
+          primary_color: palette?.primary,
+          address,
+          cnpj,
+          phone,
+          email,
+          working_hours: workingHours,
+          notification_settings: notifications
         })
         .eq("id", profile.school_id);
 
       if (error) throw error;
 
-      toast({ title: "Sucesso", description: "Tema atualizado com sucesso!" });
+      toast({ title: "Sucesso", description: "Configurações atualizadas com sucesso!" });
       
-      // Update local theme immediately
+      // Update local theme immediately if changed
       if (palette) applyTheme(palette);
       await refreshTheme();
       setActiveSection(null);
@@ -84,7 +113,48 @@ const ConfigAdminPage = () => {
       title: "Dados da Creche", 
       desc: "Nome, endereço, CNPJ, contato", 
       color: "bg-primary/15",
-      content: <div className="p-4 text-center text-muted-foreground">Em desenvolvimento</div>
+      content: (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Nome da Escola</Label>
+            <Input value={schoolName} disabled />
+          </div>
+          <div className="space-y-2">
+            <Label>Endereço</Label>
+            <Textarea 
+              value={address} 
+              onChange={(e) => setAddress(e.target.value)} 
+              placeholder="Rua, Número, Bairro, Cidade - UF"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>CNPJ</Label>
+            <Input 
+              value={cnpj} 
+              onChange={(e) => setCnpj(e.target.value)} 
+              placeholder="00.000.000/0000-00"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Telefone</Label>
+              <Input 
+                value={phone} 
+                onChange={(e) => setPhone(e.target.value)} 
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="contato@escola.com"
+              />
+            </div>
+          </div>
+        </div>
+      )
     },
     { 
       id: "hours",
@@ -92,7 +162,31 @@ const ConfigAdminPage = () => {
       title: "Horários", 
       desc: "Horário de funcionamento e turnos", 
       color: "bg-secondary/50",
-      content: <div className="p-4 text-center text-muted-foreground">Em desenvolvimento</div>
+      content: (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Abertura</Label>
+              <Input 
+                type="time" 
+                value={workingHours.open} 
+                onChange={(e) => setWorkingHours({...workingHours, open: e.target.value})} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Fechamento</Label>
+              <Input 
+                type="time" 
+                value={workingHours.close} 
+                onChange={(e) => setWorkingHours({...workingHours, close: e.target.value})} 
+              />
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Defina o horário de funcionamento padrão para exibição aos pais.
+          </p>
+        </div>
+      )
     },
     { 
       id: "notifications",
@@ -100,7 +194,32 @@ const ConfigAdminPage = () => {
       title: "Notificações", 
       desc: "Comunicados e alertas para pais", 
       color: "bg-accent/60",
-      content: <div className="p-4 text-center text-muted-foreground">Em desenvolvimento</div>
+      content: (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between space-x-2">
+            <Label htmlFor="notify-parents" className="flex flex-col space-y-1">
+              <span>Notificar Pais</span>
+              <span className="font-normal text-xs text-muted-foreground">Enviar notificações automáticas sobre atividades.</span>
+            </Label>
+            <Switch 
+              id="notify-parents" 
+              checked={notifications.parents}
+              onCheckedChange={(checked) => setNotifications({...notifications, parents: checked})}
+            />
+          </div>
+          <div className="flex items-center justify-between space-x-2">
+            <Label htmlFor="notify-messages" className="flex flex-col space-y-1">
+              <span>Alertas de Mensagens</span>
+              <span className="font-normal text-xs text-muted-foreground">Receber notificações de novas mensagens.</span>
+            </Label>
+            <Switch 
+              id="notify-messages" 
+              checked={notifications.messages}
+              onCheckedChange={(checked) => setNotifications({...notifications, messages: checked})}
+            />
+          </div>
+        </div>
+      )
     },
     { 
       id: "theme",
@@ -122,28 +241,10 @@ const ConfigAdminPage = () => {
 
           {palette && (
             <div className="space-y-2">
-              <Label>Paleta de Cores (Extraída do Logo)</Label>
-              <div className="flex flex-wrap gap-4">
-                <div className="space-y-1 text-center">
-                  <div className="w-12 h-12 rounded-full shadow-sm border" style={{ backgroundColor: palette.primary }} />
-                  <span className="text-xs text-muted-foreground">Primária</span>
-                </div>
-                <div className="space-y-1 text-center">
-                  <div className="w-12 h-12 rounded-full shadow-sm border" style={{ backgroundColor: palette.secondary }} />
-                  <span className="text-xs text-muted-foreground">Secundária</span>
-                </div>
-                <div className="space-y-1 text-center">
-                  <div className="w-12 h-12 rounded-full shadow-sm border" style={{ backgroundColor: palette.accent }} />
-                  <span className="text-xs text-muted-foreground">Destaque</span>
-                </div>
-                <div className="space-y-1 text-center">
-                  <div className="w-12 h-12 rounded-full shadow-sm border" style={{ backgroundColor: palette.background }} />
-                  <span className="text-xs text-muted-foreground">Fundo</span>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                As cores são aplicadas automaticamente no app dos pais e professores.
-              </p>
+              <ThemeEditor 
+                palette={palette} 
+                onPaletteChange={setPalette}
+              />
             </div>
           )}
         </div>
@@ -175,12 +276,10 @@ const ConfigAdminPage = () => {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setActiveSection(null)}>Cancelar</Button>
-                {s.id === "theme" && (
-                  <Button onClick={handleSaveTheme} disabled={isSaving}>
-                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Salvar Alterações
-                  </Button>
-                )}
+                <Button onClick={handleSave} disabled={isSaving}>
+                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Salvar Alterações
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

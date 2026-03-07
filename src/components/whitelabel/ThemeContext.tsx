@@ -58,14 +58,19 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
           .single();
 
         if (school) {
-          const newPalette = school.color_palette 
-            ? (school.color_palette as unknown as ColorPalette)
-            : defaultPalette;
+          let newPalette: ColorPalette;
 
-          // Fallback if only primary_color is set (legacy)
-          if (!school.color_palette && school.primary_color) {
-            newPalette.primary = school.primary_color;
+          if (school.color_palette) {
+            newPalette = school.color_palette as unknown as ColorPalette;
+          } else {
+            newPalette = { ...defaultPalette };
+            // Fallback if only primary_color is set (legacy)
+            if (school.primary_color) {
+              newPalette.primary = school.primary_color;
+            }
           }
+
+          console.log("Applying theme for school:", school.logo_url, newPalette);
 
           setLogoUrl(school.logo_url);
           setPalette(newPalette);

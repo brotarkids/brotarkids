@@ -41,6 +41,20 @@ export const LogoUpload = ({ onLogoChange, onPaletteExtracted, currentLogo, fold
       const fileName = `${folder}/${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
       const filePath = fileName; // folder is part of path
 
+      // Extract Palette from local file to avoid CORS issues with the remote URL
+      // Create a local object URL from the file
+      const localUrl = URL.createObjectURL(file);
+      try {
+        const palette = await extractPaletteFromLogo(localUrl);
+        onPaletteExtracted(palette);
+      } catch (extractionError) {
+        console.error("Error extracting palette from local file:", extractionError);
+        // Fallback or ignore
+      } finally {
+        // Clean up the object URL
+        URL.revokeObjectURL(localUrl);
+      }
+
       // Upload to Supabase
       const { error: uploadError } = await supabase.storage
         .from(bucket) 
@@ -59,10 +73,6 @@ export const LogoUpload = ({ onLogoChange, onPaletteExtracted, currentLogo, fold
 
       setPreview(publicUrl);
       onLogoChange(publicUrl);
-
-      // Extract Palette
-      const palette = await extractPaletteFromLogo(publicUrl);
-      onPaletteExtracted(palette);
       toast.success("Logo enviado e paleta extraída com sucesso!");
 
     } catch (error: any) {

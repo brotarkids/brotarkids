@@ -66,22 +66,41 @@ const EquipePage = () => {
     try {
       setLoading(true);
       
-      // Fetch active teachers using the RPC function if available, or fall back to profiles + user_roles
-      // For now, let's try to use the view/RPC if it works, or just query profiles and filter by role logic if possible.
-      // Since filtering by role in profiles requires a join with user_roles, and Supabase client supports it:
+      // Fetch active teachers using profiles and user_roles
+      const { data: schoolProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, school_id')
+        .eq('school_id', profile.school_id);
       
-      const { data: usersData, error: usersError } = await supabase
-        .rpc('get_all_users_with_email');
-
-      if (usersError) throw usersError;
-
-      // Filter for this school and role 'professor' or 'admin' (excluding self if needed, but listing all is fine)
-      const schoolTeam = usersData.filter((u: any) => 
-        u.school_id === profile.school_id && 
-        (u.role === 'professor' || u.role === 'admin')
-      );
+      if (profilesError) throw profilesError;
       
-      setTeachers(schoolTeam);
+      const userIds = (schoolProfiles || []).map(p => p.user_id);
+      
+      if (userIds.length > 0) {
+        // Fetch roles for these users
+        const { data: rolesData, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('user_id', userIds)
+          .in('role', ['professor', 'admin']);
+          
+        if (rolesError) throw rolesError;
+        
+        // Map roles to profiles
+        const roleMap = new Map();
+        (rolesData || []).forEach((r: any) => roleMap.set(r.user_id, r.role));
+        
+        const schoolTeam = schoolProfiles
+          .filter(p => roleMap.has(p.user_id))
+          .map(p => ({
+            ...p,
+            role: roleMap.get(p.user_id)
+          }));
+          
+        setTeachers(schoolTeam);
+      } else {
+        setTeachers([]);
+      }
 
       // Fetch pending invites
       const { data: invitesData, error: invitesError } = await (supabase

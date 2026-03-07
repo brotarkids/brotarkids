@@ -65,6 +65,8 @@ const CriancasPage = () => {
   });
   const [inviteLink, setInviteLink] = useState<string | null>(null);
 
+  const [isInviting, setIsInviting] = useState(false);
+
   const loadData = async () => {
     if (!profile?.school_id) return;
     
@@ -93,7 +95,7 @@ const CriancasPage = () => {
     // Load students
     let studentsQuery = supabase
       .from("students")
-      .select("*, classes(name)")
+      .select("*, classes(name), profiles:parent_id(full_name)")
       .eq("school_id", profile.school_id)
       .order("name");
 
@@ -116,8 +118,7 @@ const CriancasPage = () => {
       setStudents(studentsData || []);
     }
 
-    // Load potential parents (profiles) - only if admin, or maybe professors can see all parents?
-    // For now, let professors see all parents in the school to invite/link
+    // Load potential parents (profiles)
     const { data: profilesData, error: profilesError } = await supabase
       .from("profiles")
       .select("user_id, full_name, school_id")
@@ -138,6 +139,7 @@ const CriancasPage = () => {
   }, [profile, isProfessor]);
 
   const handleOpenDialog = (student?: any) => {
+    setIsInviting(false);
     if (student) {
       setEditingStudent(student);
       setFormData({
@@ -172,22 +174,8 @@ const CriancasPage = () => {
     setSaving(true);
     
     // Resolve parent_id or invite
-    let finalParentId = (formData.parent_id && formData.parent_id !== "_empty") ? formData.parent_id : null;
+    let finalParentId = (formData.parent_id && formData.parent_id !== "_empty" && !isInviting) ? formData.parent_id : null;
     let inviteSent = false;
-
-    if (!finalParentId && formData.parent_email) {
-       try {
-         // Check if user exists using the RPC
-         const { data: users } = await supabase.rpc('get_all_users_with_email');
-         const found = users?.find((u: any) => u.email === formData.parent_email);
-         
-         if (found) {
-           finalParentId = found.user_id;
-         }
-       } catch (err) {
-         console.error("Error finding user:", err);
-       }
-    }
 
     const payload = {
       school_id: profile.school_id,

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { LayoutDashboard, Building2, Users, CreditCard, BarChart3, Settings, Plus, Search, MoreVertical, Loader2 } from "lucide-react";
+import { LayoutDashboard, Building2, Users, CreditCard, BarChart3, Settings, Plus, Search, MoreVertical, Loader2, Edit, Trash, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +9,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { LogoUpload } from "@/components/whitelabel/LogoUpload";
-import { ColorPalette } from "@/lib/theme-utils";
+import { ColorPalette, defaultPalette } from "@/lib/theme-utils";
+import { ThemeEditor } from "@/components/whitelabel/ThemeEditor";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const navItems = [
   { label: "Visão Geral", href: "/superadmin", icon: <LayoutDashboard size={18} /> },
@@ -54,7 +71,12 @@ const CrechesPage = () => {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [createdSchoolName, setCreatedSchoolName] = useState("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [palette, setPalette] = useState<ColorPalette | null>(null);
+  const [palette, setPalette] = useState<ColorPalette>(defaultPalette);
+  
+  // Edit & Delete state
+  const [editingSchool, setEditingSchool] = useState<School | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [schoolToDelete, setSchoolToDelete] = useState<School | null>(null);
 
   const fetchSchools = async () => {
     try {
@@ -81,62 +103,166 @@ const CrechesPage = () => {
     fetchSchools();
   }, []);
 
-  const handleCreateSchool = async (e: React.FormEvent) => {
+  const handleCreateOrUpdateSchool = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) return;
     
     try {
       setSubmitting(true);
-      // 1. Create School
-      const { data: schoolData, error: schoolError } = await supabase
-        .from('schools')
-        .insert([{ 
-          name: formData.name, 
-          city: formData.city || null, 
-          state: formData.state || null,
-          director_name: formData.director_name || null,
-          email: formData.email || null,
-          phone: formData.phone || null,
-          plan_type: formData.plan_type || 'trial',
-          status: 'active',
-          logo_url: logoUrl,
-          primary_color: palette?.primary || null,
-          color_palette: palette as unknown as any // Using any to bypass Json type strictness for now
-        }])
-        .select()
-        .single();
+      
+      const payload = { 
+        name: formData.name, 
+        city: formData.city || null, 
+        state: formData.state || null,
+        director_name: formData.director_name || null,
+        email: formData.email || null,
+        phone: formData.phone || null,
+        plan_type: formData.plan_type || 'trial',
+        status: 'active',
+        logo_url: logoUrl,
+        primary_color: palette?.primary || null,
+        color_palette: palette as unknown as any
+      };
+
+      if (editingSchool) {
+        // Update existing school
+        const { error } = await supabase
+          .from('schools')
+          .update(payload)
+          .eq('id', editingSchool.id);
+          
+        if (error) throw error;
         
-      if (schoolError) throw schoolError;
+        toast({
+          title: "Sucesso!",
+          description: "Creche atualizada com sucesso.",
+        });
+        
+        setOpen(false);
+        setEditingSchool(null);
+      } else {
+        // Create new school
+        const { data: schoolData, error: schoolError } = await supabase
+          .from('schools')
+          .insert([payload])
+          .select()
+          .single();
+          
+        if (schoolError) throw schoolError;
 
-      // 2. Generate Invite (Simulated)
-      const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      const { error: inviteError } = await (supabase
-        .from('invites' as any)
-        .insert([{
-          school_id: schoolData.id,
-          email: formData.email,
-          role: 'admin',
-          token: token,
-          status: 'pending'
-        }]) as any);
+        // Generate Invite (Simulated)
+        const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        const { error: inviteError } = await (supabase
+          .from('invites' as any)
+          .insert([{
+            school_id: schoolData.id,
+            email: formData.email,
+            role: 'admin',
+            token: token,
+            status: 'pending'
+          }]) as any);
 
-      if (inviteError) {
-        console.error("Error creating invite:", inviteError);
-        // Don't block success if invite fails, just warn
-        toast({ title: "Aviso", description: "Escola criada, mas erro ao gerar convite.", variant: "destructive" });
+        if (inviteError) {
+          console.error("Error creating invite:", inviteError);
+          toast({ title: "Aviso", description: "Escola criada, mas erro ao gerar convite.", variant: "destructive" });
+        }
+
+        const generatedLink = `${window.location.origin}/signup?token=${token}`;
+        setInviteLink(generatedLink);
+        setCreatedSchoolName(formData.name);
+        
+        toast({
+          title: "Sucesso!",
+          description: "Creche cadastrada com sucesso.",
+        });
       }
+      
+      if (!editingSchool) {
+        setFormData({
+          name: "",
+          city: "",
+          state: "",
+          director_name: "",
+          email: "",
+          phone: "",
+          plan_type: "trial"
+        });
+        setLogoUrl(null);
+        setPalette(defaultPalette);
+      }
+      
+      fetchSchools();
+    } catch (error: any) {
+      toast({
+        title: `Erro ao ${editingSchool ? 'atualizar' : 'criar'} creche`,
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-      const generatedLink = `${window.location.origin}/signup?token=${token}`;
-      setInviteLink(generatedLink);
-      setCreatedSchoolName(formData.name);
+  const handleEditClick = (school: any) => {
+    setEditingSchool(school);
+    setFormData({
+      name: school.name,
+      city: school.city || "",
+      state: school.state || "",
+      director_name: school.director_name || "",
+      email: school.email || "",
+      phone: school.phone || "",
+      plan_type: school.plan_type || "trial"
+    });
+    setLogoUrl(school.logo_url);
+    if (school.color_palette) {
+      setPalette(school.color_palette as unknown as ColorPalette);
+    } else if (school.primary_color) {
+      setPalette({ ...defaultPalette, primary: school.primary_color });
+    } else {
+      setPalette(defaultPalette);
+    }
+    setOpen(true);
+  };
+
+  const handleDeleteClick = (school: School) => {
+    setSchoolToDelete(school);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!schoolToDelete) return;
+    try {
+      const { error } = await supabase
+        .from('schools')
+        .delete()
+        .eq('id', schoolToDelete.id);
+        
+      if (error) throw error;
       
       toast({
-        title: "Sucesso!",
-        description: "Creche cadastrada com sucesso.",
+        title: "Creche excluída",
+        description: `${schoolToDelete.name} foi removida com sucesso.`,
       });
-      
-      // Don't close dialog immediately, show invite link
-      // setOpen(false); 
+      fetchSchools();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao excluir",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setSchoolToDelete(null);
+    }
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      setEditingSchool(null);
+      setInviteLink(null);
+      setCreatedSchoolName("");
       setFormData({
         name: "",
         city: "",
@@ -146,15 +272,8 @@ const CrechesPage = () => {
         phone: "",
         plan_type: "trial"
       });
-      fetchSchools();
-    } catch (error: any) {
-      toast({
-        title: "Erro ao criar creche",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
+      setLogoUrl(null);
+      setPalette(defaultPalette);
     }
   };
 
@@ -176,15 +295,15 @@ const CrechesPage = () => {
           />
         </div>
         
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
           <DialogTrigger asChild>
             <Button variant="default" size="sm"><Plus size={16} /> Nova Creche</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Cadastrar Nova Creche</DialogTitle>
+              <DialogTitle>{editingSchool ? 'Editar Creche' : 'Cadastrar Nova Creche'}</DialogTitle>
             </DialogHeader>
-            {inviteLink ? (
+            {inviteLink && !editingSchool ? (
               <div className="py-4 space-y-4">
                 <div className="bg-green-50 p-4 rounded-md border border-green-200 text-green-800">
                   <h3 className="font-semibold mb-2">Escola criada com sucesso!</h3>
@@ -202,11 +321,11 @@ const CrechesPage = () => {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={() => { setOpen(false); setInviteLink(null); setCreatedSchoolName(""); }}>Fechar</Button>
+                  <Button onClick={() => handleOpenChange(false)}>Fechar</Button>
                 </DialogFooter>
               </div>
             ) : (
-            <form onSubmit={handleCreateSchool} className="space-y-4 py-4">
+            <form onSubmit={handleCreateOrUpdateSchool} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Logo e Cores</Label>
                 <div className="bg-muted/10 p-4 rounded-lg border border-border">
@@ -305,11 +424,24 @@ const CrechesPage = () => {
                     <option value="pro">Pro</option>
                   </select>
               </div>
+
+              <div className="flex items-center space-x-2 pt-2">
+                <input 
+                  type="checkbox" 
+                  id="lgpd-consent" 
+                  className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                  required
+                />
+                <Label htmlFor="lgpd-consent" className="text-sm font-normal text-muted-foreground">
+                  Declaro que tenho consentimento para uso da marca/logo desta escola conforme LGPD.
+                </Label>
+              </div>
+
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>Cancelar</Button>
                 <Button type="submit" disabled={submitting}>
-                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Salvar e Gerar Convite
+                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {editingSchool ? 'Salvar Alterações' : 'Cadastrar Creche'}
                 </Button>
               </DialogFooter>
             </form>
@@ -317,6 +449,25 @@ const CrechesPage = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente a creche 
+              <span className="font-semibold text-foreground"> {schoolToDelete?.name} </span>
+              e removerá seus dados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden">
         <div className="overflow-x-auto">
@@ -360,7 +511,24 @@ const CrechesPage = () => {
                       </span>
                     </td>
                     <td className="px-5 py-3">
-                      <button className="text-muted-foreground hover:text-foreground"><MoreVertical size={16} /></button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Abrir menu</span>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditClick(school)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDeleteClick(school)} className="text-destructive focus:text-destructive">
+                            <Trash className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))

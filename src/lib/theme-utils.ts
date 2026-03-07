@@ -36,35 +36,85 @@ export const extractPaletteFromLogo = async (
       img.onload = () => {
         try {
           const colorThief = new ColorThief();
-          const dominantColor = colorThief.getColor(img);
-          const palette = colorThief.getPalette(img, 6);
+          // Get palette (10 colors to have more options)
+          const rawPalette = colorThief.getPalette(img, 10);
 
-          const hexPalette = palette.map((rgb: number[]) =>
-            tinycolor({ r: rgb[0], g: rgb[1], b: rgb[2] }).toHexString()
-          );
+          // Helper to convert RGB array to tinycolor
+          const toTc = (rgb: number[]) => tinycolor({ r: rgb[0], g: rgb[1], b: rgb[2] });
 
-          let primary = tinycolor({
-            r: dominantColor[0],
-            g: dominantColor[1],
-            b: dominantColor[2],
-          }).toHexString();
+          // Filter out colors that are too white, too black, or too gray for the Primary color
+          // unless the image is grayscale
+          const validColors = rawPalette.filter((rgb: number[]) => {
+            const tc = toTc(rgb);
+            const { s, l } = tc.toHsl();
+            // Filter out near white (l > 0.9), near black (l < 0.1), low saturation (s < 0.1)
+            return l < 0.95 && l > 0.05 && s > 0.1;
+          });
 
-          if (tinycolor(primary).isLight()) {
-            primary = tinycolor(primary).darken(10).toHexString();
+          // If we filtered everything out (e.g. black and white logo), fall back to raw palette
+          const candidates = validColors.length > 0 ? validColors : rawPalette;
+
+          // Sort candidates by saturation (most vibrant first)
+          candidates.sort((a: number[], b: number[]) => {
+            return toTc(b).toHsl().s - toTc(a).toHsl().s;
+          });
+
+          // 1. Primary: Pick the most vibrant valid color
+          let primary = candidates.length > 0 
+            ? toTc(candidates[0]).toHexString() 
+            : defaultPalette.primary;
+
+          // Ensure primary has good contrast with white (for buttons)
+          if (tinycolor(primary).isLight() && tinycolor.readability(primary, "#FFFFFF") < 2) {
+             primary = tinycolor(primary).darken(10).toHexString();
           }
 
-          const secondary = hexPalette.find(c => c !== primary && tinycolor.readability(primary, c) > 1.5) || hexPalette[1] || defaultPalette.secondary;
-          const accent = hexPalette.find(c => c !== primary && c !== secondary && tinycolor(c).toHsl().s > 0.5) || hexPalette[2] || defaultPalette.accent;
+          // 2. Secondary: Find a color that contrasts with primary
+          let secondary = defaultPalette.secondary;
+          const primaryTc = tinycolor(primary);
+          
+          // Look for a color in the palette that is distinct from primary
+          const secondaryCandidate = candidates.find((rgb: number[]) => {
+              const tc = toTc(rgb);
+              const hex = tc.toHexString();
+              if (hex === primary) return false;
+              return tinycolor.readability(primary, hex) > 1.5; // visible against primary
+          });
+
+          if (secondaryCandidate) {
+              secondary = toTc(secondaryCandidate).toHexString();
+          } else {
+              secondary = primaryTc.lighten(20).toHexString(); // Monochromatic fallback
+          }
+
+          // 3. Accent: Pick another distinct vibrant color
+          let accent = defaultPalette.accent;
+          const accentCandidate = candidates.find((rgb: number[]) => {
+              const hex = toTc(rgb).toHexString();
+              return hex !== primary && hex !== secondary;
+          });
+          
+          if (accentCandidate) {
+              accent = toTc(accentCandidate).toHexString();
+          } else {
+               accent = primaryTc.complement().toHexString();
+          }
+
+          // 4. Background/Foreground
+          const background = "#FFFFFF";
+          const foreground = "#1A1A1A";
+          const sidebar = "#FFFFFF";
+          const sidebarForeground = "#1A1A1A";
 
           URL.revokeObjectURL(blobUrl);
           resolve({
             primary,
             secondary,
             accent,
-            background: "#FFFFFF",
-            foreground: "#1A1A1A",
-            sidebar: "#FFFFFF",
-            sidebarForeground: "#1A1A1A",
+            background,
+            foreground,
+            sidebar,
+            sidebarForeground
           });
         } catch (error) {
           console.error("Error extracting colors:", error);
@@ -92,30 +142,18 @@ export const applyTheme = (palette: ColorPalette) => {
   
   // Helper to set CSS variable and HSL version for Tailwind
   const setVariable = (name: string, color: string) => {
+    root.style.setProperty(name, color);
     const tc = tinycolor(color);
     const { h, s, l } = tc.toHsl();
-    // Set standard hex variable
-    root.style.setProperty(`--${name}-hex`, color);
-    // Set HSL values for Tailwind (e.g., --primary: 142 76% 36%)
-    // Tailwind uses: hsl(var(--primary))
-    root.style.setProperty(`--${name}`, `${h} ${s * 100}% ${l * 100}%`);
-    
-    // Calculate foreground (text color) for this background
-    // If background is dark, text should be light, and vice versa
-    const isDark = tc.isDark();
-    const fgColor = isDark ? "#FFFFFF" : "#1A1A1A";
-    const fgTc = tinycolor(fgColor);
-    const fgHsl = fgTc.toHsl();
-    root.style.setProperty(`--${name}-foreground`, `${fgHsl.h} ${fgHsl.s * 100}% ${fgHsl.l * 100}%`);
+    // Tailwind uses space-separated HSL values (e.g. "222.2 47.4% 11.2%")
+    root.style.setProperty(name.replace("--", "--"), `${h} ${s * 100}% ${l * 100}%`);
   };
 
-  setVariable("primary", palette.primary);
-  setVariable("secondary", palette.secondary);
-  setVariable("accent", palette.accent);
-  
-  // Update sidebar colors if needed
-  setVariable("sidebar-primary", palette.primary);
-  
-  // We can also set specific sidebar background if we want
-  // root.style.setProperty("--sidebar-background", ...);
+  setVariable("--primary", palette.primary);
+  setVariable("--secondary", palette.secondary);
+  setVariable("--accent", palette.accent);
+  setVariable("--background", palette.background);
+  setVariable("--foreground", palette.foreground);
+  setVariable("--sidebar", palette.sidebar);
+  setVariable("--sidebar-foreground", palette.sidebarForeground);
 };

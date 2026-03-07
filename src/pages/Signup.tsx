@@ -138,7 +138,7 @@ const Signup = () => {
                 Convite: {inviteData.schools?.name}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Você está se cadastrando como <strong>{inviteData.role === 'admin' ? 'Diretor(a)' : inviteData.role === 'teacher' ? 'Professor(a)' : 'Responsável'}</strong>.
+                Você está se cadastrando como <strong>{inviteData.role === 'admin' ? 'Diretor(a)' : (inviteData.role === 'teacher' || inviteData.role === 'professor') ? 'Professor(a)' : 'Responsável'}</strong>.
               </p>
             </div>
           ) : (

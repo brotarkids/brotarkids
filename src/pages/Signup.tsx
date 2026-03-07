@@ -109,6 +109,20 @@ const Signup = () => {
         
       toast.success("Conta criada com sucesso! Verifique seu email.");
     }
+
+    // Send notification email to admin
+    try {
+      await supabase.functions.invoke('notify-signup', {
+        body: {
+          name,
+          email,
+          role: inviteData?.role || null,
+          school_name: inviteData?.schools?.name || null,
+        },
+      });
+    } catch (err) {
+      console.error("Error sending signup notification:", err);
+    }
     
     setLoading(false);
   };

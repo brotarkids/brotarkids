@@ -61,12 +61,12 @@ const ConfigAdminPage = () => {
       }
 
       setSchoolName(school.name || "");
-      setAddress(school.address || "");
-      setCnpj(school.cnpj || "");
-      setPhone(school.phone || "");
-      setEmail(school.email || "");
-      if (school.working_hours) setWorkingHours(school.working_hours);
-      if (school.notification_settings) setNotifications(school.notification_settings);
+      setAddress((school as any).address || "");
+      setCnpj((school as any).cnpj || "");
+      setPhone((school as any).phone || "");
+      setEmail((school as any).email || "");
+      if ((school as any).working_hours) setWorkingHours((school as any).working_hours);
+      if ((school as any).notification_settings) setNotifications((school as any).notification_settings);
     }
   }, [profile]);
 
@@ -81,13 +81,13 @@ const ConfigAdminPage = () => {
           logo_url: logoUrl,
           color_palette: palette as unknown as any,
           primary_color: palette?.primary,
-          address,
-          cnpj,
           phone,
           email,
+          address,
+          cnpj,
           working_hours: workingHours,
           notification_settings: notifications
-        })
+        } as any)
         .eq("id", profile.school_id);
 
       if (error) throw error;

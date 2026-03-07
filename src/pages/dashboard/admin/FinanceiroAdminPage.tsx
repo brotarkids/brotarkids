@@ -80,7 +80,6 @@ const FinanceiroAdminPage = () => {
         description,
         amount: parseFloat(amount),
         due_date: dueDate,
-        type,
         status: "pending"
       }]);
 
@@ -101,7 +100,7 @@ const FinanceiroAdminPage = () => {
     try {
       const { error } = await supabase
         .from("financial_records")
-        .update({ status: newStatus, paid_at: newStatus === 'paid' ? new Date().toISOString() : null })
+        .update({ status: newStatus, payment_date: newStatus === 'paid' ? new Date().toISOString().split('T')[0] : null })
         .eq("id", id);
 
       if (error) throw error;

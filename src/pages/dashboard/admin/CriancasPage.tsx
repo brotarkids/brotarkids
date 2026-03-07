@@ -165,7 +165,10 @@ const CriancasPage = () => {
   };
 
   const handleSaveStudent = async () => {
-    if (!profile?.school_id) return;
+    if (!profile?.school_id) {
+      toast.error("Você precisa estar vinculado a uma escola para matricular alunos.");
+      return;
+    }
     if (!formData.name || !formData.birth_date) {
       toast.error("Nome e data de nascimento são obrigatórios");
       return;

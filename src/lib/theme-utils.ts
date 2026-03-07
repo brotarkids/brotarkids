@@ -25,70 +25,66 @@ export const defaultPalette: ColorPalette = {
 export const extractPaletteFromLogo = async (
   imageUrl: string
 ): Promise<ColorPalette> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    img.src = imageUrl;
+  try {
+    // Fetch image as blob to avoid CORS/tainted canvas issues
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
 
-    img.onload = () => {
-      try {
-        const colorThief = new ColorThief();
-        // Get dominant color
-        const dominantColor = colorThief.getColor(img);
-        // Get palette (5 colors)
-        const palette = colorThief.getPalette(img, 6);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const colorThief = new ColorThief();
+          const dominantColor = colorThief.getColor(img);
+          const palette = colorThief.getPalette(img, 6);
 
-        // Convert to hex
-        const hexPalette = palette.map((rgb: number[]) =>
-          tinycolor({ r: rgb[0], g: rgb[1], b: rgb[2] }).toHexString()
-        );
+          const hexPalette = palette.map((rgb: number[]) =>
+            tinycolor({ r: rgb[0], g: rgb[1], b: rgb[2] }).toHexString()
+          );
 
-        // Construct semantic palette
-        // 1. Primary: Use dominant color or first vibrant color
-        let primary = tinycolor({
-          r: dominantColor[0],
-          g: dominantColor[1],
-          b: dominantColor[2],
-        }).toHexString();
+          let primary = tinycolor({
+            r: dominantColor[0],
+            g: dominantColor[1],
+            b: dominantColor[2],
+          }).toHexString();
 
-        // Ensure primary has good contrast with white (for buttons)
-        // If not, darken it
-        if (tinycolor(primary).isLight()) {
-          // If too light, maybe pick another from palette or darken
-          primary = tinycolor(primary).darken(10).toHexString();
-        }
+          if (tinycolor(primary).isLight()) {
+            primary = tinycolor(primary).darken(10).toHexString();
+          }
 
-        // 2. Secondary: Pick a color that contrasts with primary but is distinct
-        const secondary = hexPalette.find(c => c !== primary && tinycolor.readability(primary, c) > 1.5) || hexPalette[1] || defaultPalette.secondary;
+          const secondary = hexPalette.find(c => c !== primary && tinycolor.readability(primary, c) > 1.5) || hexPalette[1] || defaultPalette.secondary;
+          const accent = hexPalette.find(c => c !== primary && c !== secondary && tinycolor(c).toHsl().s > 0.5) || hexPalette[2] || defaultPalette.accent;
 
-        // 3. Accent: Pick the most vibrant/saturated remaining color
-        const accent = hexPalette.find(c => c !== primary && c !== secondary && tinycolor(c).toHsl().s > 0.5) || hexPalette[2] || defaultPalette.accent;
-
-        // 4. Sidebar: Usually white or dark, let's derive from primary but very dark or very light
-        // For simplicity, keep white for clean look or use very light primary
-        const sidebar = "#FFFFFF";
-        const sidebarForeground = "#1A1A1A";
-
-        resolve({
+          URL.revokeObjectURL(blobUrl);
+          resolve({
             primary,
             secondary,
             accent,
             background: "#FFFFFF",
             foreground: "#1A1A1A",
-            sidebar,
-            sidebarForeground
-        });
-      } catch (error) {
-        console.error("Error extracting colors:", error);
-        resolve(defaultPalette);
-      }
-    };
+            sidebar: "#FFFFFF",
+            sidebarForeground: "#1A1A1A",
+          });
+        } catch (error) {
+          console.error("Error extracting colors:", error);
+          URL.revokeObjectURL(blobUrl);
+          resolve(defaultPalette);
+        }
+      };
 
-    img.onerror = (err) => {
-        console.error("Error loading image for color extraction:", err);
+      img.onerror = () => {
+        console.error("Error loading blob image for color extraction");
+        URL.revokeObjectURL(blobUrl);
         resolve(defaultPalette);
-    };
-  });
+      };
+
+      img.src = blobUrl;
+    });
+  } catch (error) {
+    console.error("Error fetching image for color extraction:", error);
+    return defaultPalette;
+  }
 };
 
 export const applyTheme = (palette: ColorPalette) => {

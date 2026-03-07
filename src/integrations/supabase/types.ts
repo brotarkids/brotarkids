@@ -178,6 +178,7 @@ export type Database = {
           school_id: string
           status: string | null
           student_id: string | null
+          type: string | null
           updated_at: string | null
         }
         Insert: {
@@ -191,6 +192,7 @@ export type Database = {
           school_id: string
           status?: string | null
           student_id?: string | null
+          type?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -204,6 +206,7 @@ export type Database = {
           school_id?: string
           status?: string | null
           student_id?: string | null
+          type?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -469,7 +472,9 @@ export type Database = {
       }
       schools: {
         Row: {
+          address: string | null
           city: string | null
+          cnpj: string | null
           color_palette: Json | null
           created_at: string | null
           director_name: string | null
@@ -479,6 +484,7 @@ export type Database = {
           logo_url: string | null
           menu_url: string | null
           name: string
+          notification_settings: Json | null
           phone: string | null
           photo_policy_accepted_at: string | null
           plan_type: string | null
@@ -487,9 +493,12 @@ export type Database = {
           status: string | null
           teacher_student_ratio: number | null
           updated_at: string | null
+          working_hours: Json | null
         }
         Insert: {
+          address?: string | null
           city?: string | null
+          cnpj?: string | null
           color_palette?: Json | null
           created_at?: string | null
           director_name?: string | null
@@ -499,6 +508,7 @@ export type Database = {
           logo_url?: string | null
           menu_url?: string | null
           name: string
+          notification_settings?: Json | null
           phone?: string | null
           photo_policy_accepted_at?: string | null
           plan_type?: string | null
@@ -507,9 +517,12 @@ export type Database = {
           status?: string | null
           teacher_student_ratio?: number | null
           updated_at?: string | null
+          working_hours?: Json | null
         }
         Update: {
+          address?: string | null
           city?: string | null
+          cnpj?: string | null
           color_palette?: Json | null
           created_at?: string | null
           director_name?: string | null
@@ -519,6 +532,7 @@ export type Database = {
           logo_url?: string | null
           menu_url?: string | null
           name?: string
+          notification_settings?: Json | null
           phone?: string | null
           photo_policy_accepted_at?: string | null
           plan_type?: string | null
@@ -527,6 +541,7 @@ export type Database = {
           status?: string | null
           teacher_student_ratio?: number | null
           updated_at?: string | null
+          working_hours?: Json | null
         }
         Relationships: []
       }

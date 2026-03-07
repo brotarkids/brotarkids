@@ -75,7 +75,15 @@ const CriancasPage = () => {
   const [isInviting, setIsInviting] = useState(false);
 
   const loadData = async () => {
-    if (!profile?.school_id) return;
+    if (!effectiveSchoolId) {
+      // Superadmin without school selected: load schools list
+      if (isSuperadmin) {
+        const { data: schoolsData } = await supabase.from("schools").select("id, name").order("name");
+        setSchools(schoolsData || []);
+        setLoading(false);
+      }
+      return;
+    }
     
     setLoading(true);
     

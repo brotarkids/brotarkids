@@ -89,7 +89,7 @@ const Signup = () => {
 
         if (rpcError) throw rpcError;
 
-        toast.success("Conta criada e convite aceito com sucesso!");
+      toast.success("Conta criada e convite aceito com sucesso!");
       } catch (err: any) {
         console.error("Error processing invite:", err);
         toast.error("Erro ao processar convite: " + err.message);
